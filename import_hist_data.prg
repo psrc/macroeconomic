@@ -1,33 +1,30 @@
 
 'THIS PROGRAM  CREATES A WORKFILE CONTAINING TWO SHEETS, IMPORTS HISTORICAL DATA FROM EXCEL INTO A SINGLE WORKFILE CONTAINING MULTIPLE SHEETS
 
-
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''f
 'FIRST, IMPORT QUARTERLY U.S. NATIONAL FORECAST DATA (FROM FAIR MODEL)  INTO WORKFILE AND CREATE DISPLAY NAMES
 'TO DO THIS, OPEN THE FAIR MODEL WORKFILE, SELECT THE FORECAST PAGE, SET THE SAMPLE, EXPORT VARIABLE TO EXCEL,
 'AND THEN IMPORT FROM EXCEL INTO THE QUARTERLY PAGE OF THIS WORKFILE (DONE DOWN BELOW)
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''''''f''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-WFOPEN "J:\Projects\Forecasts\Regional\2010\ECO_2006\National_model\FAIR_Model&Data\FMEV\FM_UPDATE2006"
+WFOPEN "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\National_model\FMEV\fm_extend"
 
-PAGESELECT Through_2040
+PAGESELECT Untitled
+smpl 1970Q1 2050Q4
 
-
-smpl 1970Q1 2040Q4
-
-WRITE 	 "J:\Projects\Forecasts\Regional\2010\ECO_2006\National_model\US_out_data.xls" gdpr_0 gdpd_0 pim pex_0 e_0 wf_0 m1_0 ur_0 rs_0 rb_0 rm_0 ihh_0 y_0
-
+'Unadjusted
+WRITE 	 "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\National_model\US_out_data.xls" gdpr_0 gdpd_0 pim pex_0 ph_0 e_0 wf_0 m1_0 ur_0 rs_0 rb_0 rm_0 ihh_0 y_0 yd_0
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 'SECOND, CREATE WORKFILE WITH A MONTHLY, QUARTERLY, AND ANNUAL PAGE
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-WFCREATE (WF="PSRC2006update") m 1970:01 2040:12
+WFCREATE (WF="PSRC2011") m 1970:01 2050:12
 PAGERENAME Untitled Monthly
 
-PAGECREATE (page="Quarterly") q 1970Q1 2040Q4
+PAGECREATE (page="Quarterly") q 1970Q1 2050Q4
 PAGERENAME Untitled Quarterly
 
-PAGECREATE (page="Annual") a 1970 2040
+PAGECREATE (page="Annual") a 1970 2050
 PAGERENAME Untitled Annual
 
 
@@ -38,12 +35,14 @@ PAGERENAME Untitled Annual
 PAGESELECT Annual
 
 'IMPORT COUNTY-LEVEL PERSONAL INCOME DATA INTO ANNUAL PAGE 
-READ(t=xls, b2, s=Personal_Income) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\PSRC_Historic_Economic.xls" 10
+READ(t=xls, b2, s=Personal_Income) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 10
 
 kyp.displayname King Personal Income
 byp.displayname Kitsap Personal Income
 typ.displayname Peirce Personal Income
 syp.displayname Snohomish Personal Income
+
+
 pyp.displayname Puget Sound Personal Income
 
 kyws.displayname King Wage & Salary Personal Income
@@ -52,9 +51,94 @@ tyws.displayname Peirce Wage & Salary Personal Income
 syws.displayname Snohomish Wage & Salary Personal Income
 pyws.displayname Puget Sound Wage & Salary Personal Income
 
+'IMPORT WASHINGTON PERSONAL INCOME INTO QUARTERLY PAGE
+READ(t=xls, b3, s=WA_Pers_Inc) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 2
+
+wyp.displayname WA Total Personal Income
+wyws.displayname WA Wage & Salary Income 
+
+'IMPORT KING COUNTY POPULATION DATA INTO QUARTERLY PAGE
+READ(t=xls, b3, s=King-POP) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 15
+
+kpop.displayname King County Population 
+kpop0.displayname King Cty 0-4 Population
+kpop20.displayname King Cty 20-64 Population 
+kpop5.displayname King Cty 5-19 Population
+kpop65.displayname King Cty 65+ Population
+kpopgrqt.displayname King Cty Group Quarters Population
+kpophse.displayname King Cty Household Population
+kpophsesn.displayname King Cty Single-Family Population
+kpophseml.displayname King Cty Multi-Family Population
+khse.displayname King Cty Households
+khsesn.displayname King Cty Single-Family Households
+khseml.displayname King Cty Multi-Family Households
+khsesz.displayname King Cty Household Size
+khseszsn.displayname King Cty Household Size (Single-Family)
+khseszml.displayname King Cty Household Size (Multi-Family)
+
+
+'IMPORT KITSAP COUNTY POPULATION DATA INTO QUARTERLY PAGE
+READ(t=xls, b3, s=Kitsap-POP) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 15
+
+bpop.displayname Kitsap County Population 
+bpop0.displayname Kitsap Cty 0-4 Population
+bpop20.displayname Kitsap Cty 20-64 Population 
+bpop5.displayname Kitsap Cty 5-19 Population
+bpop65.displayname Kitsap Cty 65+ Population 
+bpopgrqt.displayname Kitsap Cty Group Quarters Population
+bpophse.displayname Kitsap Cty Household Population
+bpophsesn.displayname Kitsap Cty Single-Family Population
+bpophseml.displayname Kitsap Cty Multi-Family Population
+bhse.displayname Kitsap Cty Households
+bhsesn.displayname Kitsap Cty Single-Family Households
+bhseml.displayname Kitsap Cty Multi-Family Households
+bhsesz.displayname Kitsap Cty Household Size
+bhseszsn.displayname Kitsap Cty Household Size (Single Family)
+bhseszml.displayname Kitsap Cty Household Size (Multi-Family)
+
+
+'IMPORT PIERCE COUNTY POPULATION DATA INTO QUARTERLY PAGE
+READ(t=xls, b3, s=Pierce-POP) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 15
+
+tpop.displayname Pierce County Population 
+tpop0.displayname Pierce Cty 0-4 Population
+tpop20.displayname Pierce Cty 20-64 Population 
+tpop5.displayname Pierce Cty 5-19 Population
+tpop65.displayname Pierce Cty 65+ Population
+tpopgrqt.displayname Pierce Cty Group Quarters Population
+tpophse.displayname Pierce Cty Household Population
+tpophsesn.displayname Pierce Cty Single-Family Population
+tpophseml.displayname Pierce  Cty Multi-Family Population
+thse.displayname Pierce Cty Household Population
+thsesn.displayname Pierce Cty Single-Family Households
+thseml.displayname Pierce Cty Multi-Family Houeholds
+thsesz.displayname Pierce Cty Household Size
+thseszsn.displayname Pierce Cty Household Size (Singe-Family)
+thseszml.displayname Pierce Cty Household Size (Mulit-Family)
+
+
+'IMPORT SNOHOMISH COUNTY POPULATION DATA INTO QUARTERLY PAGE
+READ(t=xls, b3, s=Snohomish-POP) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 15
+
+spop.displayname Snohomish County Population 
+spop0.displayname Snohomish Cty 0-4 Population
+spop20.displayname Snohomish Cty 20-64 Population 
+spop5.displayname Snohomish Cty 5-19 Population
+spop65.displayname Snohomish Cty 65+ Population
+spopgrqt.displayname Snohomish Cty Group Quarters Population
+spophse.displayname Snohomish Cty Household Population
+spophsesn.displayname Snohomish Cty Single-Family Population
+spophseml.displayname Snohomish Cty Multi-Family Population
+shse.displayname Snohomish Cty Household Population
+shsesn.displayname Snohomish Cty Single-Family Households
+shseml.displayname Snohomish Cty Multi-Family Households
+shsesz.displayname Snohomish Cty Household Size
+shseszsn.displayname Snohomish Cty Household Size (Single-Family)
+shseszml.displayname Snohomish Cty Household Size (Multi-Family)
+
 
 'IMPORT STATE-LEVEL POPULATION DATA INTO ANNUAL PAGE 
-READ(t=xls, b3, s=State_Population) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\PSRC_Historic_Economic.xls" 5
+READ(t=xls, b3, s=State_Population) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 5
 
 wpop0.displayname Washington State 0-4 Population
 wpop5.displayname Washington State 5-19 Population
@@ -69,7 +153,7 @@ wpop.displayname Washington State Total Population
 PAGESELECT Annual
 
 'IMPORT COUNTY-LEVEL TAXABLE RETAIL SALES DATA INTO ANNUAL PAGE 
-READ(t=xls, b3, s=Retail_Sales) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\REVENUE_DATA.xls" 4
+READ(t=xls, b2, s=Retail_Sales) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\REVENUE_DATA.xls" 4
 
 KRETAIL.displayname King Taxable Retail Sales
 BRETAIL.displayname Kitsap Taxable Retail Sales
@@ -79,7 +163,7 @@ TRETAIL.displayname Snohomish Taxable Retail Sales
 
 
 'IMPORT STATE-LEVEL FUEL SALES DATA INTO ANNUAL PAGE 
-READ(t=xls, b3, s=Fuel_Sales) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\REVENUE_DATA.xls" 5
+READ(t=xls, b2, s=Fuel_Sales) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\REVENUE_DATA.xls" 5
 
 KFUEL.displayname King County Total Fuel Sold (thous. gallons)
 BFUEL.displayname Kitsap County Total Fuel Sold (thous. gallons)
@@ -89,7 +173,7 @@ WFUEL.displayname Washington State Total Fuel Sold (thous. gallons)
 
 
 'IMPORT COUNTY- AND STATE-LEVEL VEHICLES BY CLASS DATA INTO ANNUAL PAGE 
-READ(t=xls, b3, s=Vehicles) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\REVENUE_DATA.xls" 20
+READ(t=xls, b4, s=Vehicles) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\REVENUE_DATA.xls" 20
 
 KCAR.displayname King County Passenger Vehicles
 KTRKGAS.displayname King County Gasoline Trucks
@@ -118,7 +202,7 @@ WOTHVEH.displayname Washington State Other Vehicles
 
 
 'IMPORT COUNTY-LEVEL MVET DATA INTO ANNUAL PAGE 
-READ(t=xls, b3, s=MVET_data) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\Cty_MVET_data.xls" 4
+READ(t=xls, b2, s=MVET_data) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\Cty_MVET_data.xls" 4
 
 KMVET.displayname King County MVET Base Value
 BMVET.displayname Kistap County MVET Base Value
@@ -131,7 +215,7 @@ SMVET.displayname Snohomish County MVET Base Value
 PAGESELECT Monthly
 
 'IMPORT COUNTY-LEVEL UNEMPLOYMENT RATE DATA INTO MONTHLY PAGE (TO DERIVE WORKFORCE NUMBERS) 
-READ(t=xls, b2, s=County_Unemp_Rates) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\Cty_Unemp_rates.xls" 4
+READ(t=xls, b4, s=County_Unemp_Rates) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\Cty_Unemp_rates_ECO.xls" 4
 
 kunrtu.displayname King Unemp Rate (not seasonally adjusted)
 bunrtu.displayname Kitsap Unemp Rate (not seasonally adjusted)
@@ -140,7 +224,7 @@ sunrtu.displayname Snohomish Unemp Rate (not seasonally adjusted)
 
 
 'IMPORT COUNTY-LEVEL BUILDING PERMIT DATA INTO MONTHLY PAGE 
-READ(t=xls, b2, s=Build_Permit_Monthly) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\PSRC_Historic_Economic.xls" 8
+READ(t=xls, b4, s=Build_Permit_Monthly) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 8
 
 khssu.displayname King single-family build permits
 khsu.displayname King build permits, total units 
@@ -154,7 +238,7 @@ shssu.displayname Snohomish build permits, total units
 
 
 'IMPORT KING COUNTY EMPLOYMENT DATA INTO MONTHLY PAGE 
-READ(t=xls, b2, s=King_update) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\WA_Employment.xls" 31
+READ(t=xls, b4, s=King_update) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\WA_Employment_ECO.xls" 31
 
 KNU.displayname King: Wage & Salary Employment (not season adj)
 KNGOODSU.displayname King: Goods Producing Employment (not season adj)
@@ -191,7 +275,7 @@ KNGOVFEDU.displayname King: Federal Civilian Employment (not season adj)
 
 
 'IMPORT KITSAP COUNTY EMPLOYMENT DATA INTO MONTHLY PAGE 
-READ(t=xls, b2, s=Kitsap_update) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\WA_Employment.xls" 31
+READ(t=xls, b4, s=Kitsap_update) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\WA_Employment_ECO.xls" 31
 
 BNU.displayname Kitsap: Wage & Salary Employment (not season adj)
 BNGOODSU.displayname Kitsap: Goods Producing Employment (not season adj)
@@ -228,7 +312,7 @@ BNGOVFEDU.displayname Kitsap: Federal Civilian Employment (not season adj)
 
 
 'IMPORT PIERCE COUNTY EMPLOYMENT DATA INTO MONTHLY PAGE 
-READ(t=xls, b2, s=Pierce_update) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\WA_Employment.xls" 31
+READ(t=xls, b4, s=Pierce_update) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\WA_Employment_ECO.xls" 31
 
 TNU.displayname Pierce: Wage & Salary Employment (not season adj)
 TNGOODSU.displayname Pierce: Goods Producing Employment (not season adj)
@@ -265,7 +349,7 @@ TNGOVFEDU.displayname Pierce: Federal Civilian Employment (not season adj)
 
 
 'IMPORT SNOHOMISH COUNTY EMPLOYMENT DATA INTO MONTHLY PAGE 
-READ(t=xls, b2, s=Snohomish_update) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\WA_Employment.xls" 31
+READ(t=xls, b4, s=Snohomish_update) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\WA_Employment_ECO.xls" 31
 
 SNU.displayname Snohomish: Wage & Salary Employment (not season adj)
 SNGOODSU.displayname Snohomish: Goods Producing Employment (not season adj)
@@ -299,115 +383,25 @@ SNGOVLEDUCU.displayname Snohomish: Local Education Employment (not season adj)
 SNGOVOSLU.displayname Snohomish: Other State & Local Employment (not season adj)
 SNGOVFEDU.displayname Snohomish: Federal Civilian Employment (not season adj)
 
-
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 'FIFTH, IMPORT QUARTERLY DATA INTO WORKFILE AND CREATE DISPLAY NAMES
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 PAGESELECT Quarterly
 
 'IMPORT SEATTLE CPI INTO QUARTERLY PAGE 
-READ(t=xls, b3, s=Seattle_CPI) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\PSRC_Historic_Economic.xls" 1
+READ(t=xls, b3, s=Seattle_CPI) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 1
 
 scpi.displayname Seattle CPI 2000=1.0
 
 
-'IMPORT WASHINGTON PERSONAL INCOME INTO QUARTERLY PAGE
-READ(t=xls, b2, s=WA_Pers_Inc) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\PSRC_Historic_Economic.xls" 2
-
-wyp.displayname WA Total Personal Income
-wyws.displayname WA Wage & Salary Income 
-
-'IMPORT KING COUNTY POPULATION DATA INTO QUARTERLY PAGE
-READ(t=xls, b3, s=King-POP) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\PSRC_Historic_Economic.xls" 15
-
-kpop.displayname King County Population 
-kpop0.displayname King Cty 0-4 Population
-kpop20.displayname King Cty 20-64 Population 
-kpop5.displayname King Cty 5-19 Population
-kpop65.displayname King Cty 65+ Population
-kpopgrqt.displayname King Cty Group Quarters Population
-kpophse.displayname King Cty Household Population
-kpophsesn.displayname King Cty Single-Family Population
-kpophseml.displayname King Cty Multi-Family Population
-khse.displayname King Cty Households
-khsesn.displayname King Cty Single-Family Households
-khseml.displayname King Cty Multi-Family Households
-khsesz.displayname King Cty Household Size
-khseszsn.displayname King Cty Household Size (Single-Family)
-khseszml.displayname King Cty Household Size (Multi-Family)
-
-
-'IMPORT KITSAP COUNTY POPULATION DATA INTO QUARTERLY PAGE
-READ(t=xls, b3, s=Kitsap-POP) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\PSRC_Historic_Economic.xls" 15
-
-bpop.displayname Kitsap County Population 
-bpop0.displayname Kitsap Cty 0-4 Population
-bpop20.displayname Kitsap Cty 20-64 Population 
-bpop5.displayname Kitsap Cty 5-19 Population
-bpop65.displayname Kitsap Cty 65+ Population 
-bpopgrqt.displayname Kitsap Cty Group Quarters Population
-bpophse.displayname Kitsap Cty Household Population
-bpophsesn.displayname Kitsap Cty Single-Family Population
-bpophseml.displayname Kitsap Cty Multi-Family Population
-bhse.displayname Kitsap Cty Households
-bhsesn.displayname Kitsap Cty Single-Family Households
-bhseml.displayname Kitsap Cty Multi-Family Households
-bhsesz.displayname Kitsap Cty Household Size
-bhseszsn.displayname Kitsap Cty Household Size (Single Family)
-bhseszml.displayname Kitsap Cty Household Size (Multi-Family)
-
-
-'IMPORT PIERCE COUNTY POPULATION DATA INTO QUARTERLY PAGE
-READ(t=xls, b3, s=Pierce-POP) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\PSRC_Historic_Economic.xls" 15
-
-tpop.displayname Pierce County Population 
-tpop0.displayname Pierce Cty 0-4 Population
-tpop20.displayname Pierce Cty 20-64 Population 
-tpop5.displayname Pierce Cty 5-19 Population
-tpop65.displayname Pierce Cty 65+ Population
-tpopgrqt.displayname Pierce Cty Group Quarters Population
-tpophse.displayname Pierce Cty Household Population
-tpophsesn.displayname Pierce Cty Single-Family Population
-tpophseml.displayname Pierce  Cty Multi-Family Population
-thse.displayname Pierce Cty Household Population
-thsesn.displayname Pierce Cty Single-Family Households
-thseml.displayname Pierce Cty Multi-Family Houeholds
-thsesz.displayname Pierce Cty Household Size
-thseszsn.displayname Pierce Cty Household Size (Singe-Family)
-thseszml.displayname Pierce Cty Household Size (Mulit-Family)
-
-
-'IMPORT SNOHOMISH COUNTY POPULATION DATA INTO QUARTERLY PAGE
-READ(t=xls, b3, s=Snohomish-POP) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\PSRC_Historic_Economic.xls" 15
-
-spop.displayname Snohomish County Population 
-spop0.displayname Snohomish Cty 0-4 Population
-spop20.displayname Snohomish Cty 20-64 Population 
-spop5.displayname Snohomish Cty 5-19 Population
-
-spop65.displayname Snohomish Cty 65+ Population
-spopgrqt.displayname Snohomish Cty Group Quarters Population
-spophse.displayname Snohomish Cty Household Population
-spophsesn.displayname Snohomish Cty Single-Family Population
-spophseml.displayname Snohomish Cty Multi-Family Population
-shse.displayname Snohomish Cty Household Population
-shsesn.displayname Snohomish Cty Single-Family Households
-shseml.displayname Snohomish Cty Multi-Family Households
-shsesz.displayname Snohomish Cty Household Size
-shseszsn.displayname Snohomish Cty Household Size (Single-Family)
-shseszml.displayname Snohomish Cty Household Size (Multi-Family)
-
-
-
 'IMPORT PUGET SOUND MILITARY EMPLOYMENT DATA INTO QUARTERLY PAGE
-READ(t=xls, b2, s=Sheet1) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\PugetSound_military.xls" 1
+READ(t=xls, b2, s=Sheet1) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PugetSound_military_ECO.xls" 1
 
 PNMIL.displayname Puget Sound Military Employment
 
 
-
 'IMPORT EXOGENOUS PUGET SOUND DATA INTO QUARTERLY PAGE
-READ(t=xls, b2, s=Sheet1) "J:\Projects\Forecasts\Regional\2010\ECO_2006\Historical_data\PugetSound_EXOG.xls" 3
+READ(t=xls, b2, s=Sheet1) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PugetSound_EXOG_ECO.xls" 3
 
 PNAER.displayname Puget Sound Aerospace Employment
 PNMS.displayname Puget Sound Microsoft Employment
@@ -417,12 +411,13 @@ PYSTK.displayname Puget Sound Stock Option (MILLIONS OF $)
 
 'IMPORT NATIONAL DATA (DERIVED FROM FAIR MODEL) INTO QUARTERLY WORKPAGE
 PAGESELECT Quarterly
-READ(t=xls, b2, s=Sheet1) "J:\Projects\Forecasts\Regional\2010\ECO_2006\National_model\US_out_data.xls" 13
+READ(t=xls, b2, s=Sheet1) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\National_model\US_out_data.xls" 15
 
 GDPR_0.displayname US GDP B2000$
 GDPD_0.displayname GDP price deflator
 PIM.displayname Price Deflator for Imports
 PEX_0.displayname Price Deflator for Exports
+PH_0.displayname Consumer Expenditure Deflator
 E_0.displayname Total Employ, Civilian & Military, Millions
 WF_0.displayname Avg Hourly Earnings, excludes OT in farming
 M1_0.displayname Money Supply, End of Quarter
@@ -432,59 +427,24 @@ RB_0.displayname Bond Rate, Percentage Points
 RM_0.displayname Mortgage Rate, Percentage Points
 IHH_0.displayname Residential Investment by Households
 Y_0.displayname Total Production by F1, NN, and FA Businesses (see Fair2006 for defs)
+YD_0.displayname Disposable Income (Personal Income)
 
 
 'IMPORT PPI "FUEL & RELATED PRODUCTS & POWER" INDEX (OBTAINED FROM "FRED")
 PAGESELECT Quarterly
-READ(t=xls, c2, s=USPPI_fuel_quarterly.xls) "J:\Projects\Forecasts\Regional\2010\ECO_2006\National_model\USPPI_fuel_quarterly.xls" 1
+READ(t=xls, c2, s=USPPI_fuel_quarterly.xls) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\National_model\USPPI_fuel_quarterly_ECO.xls" 1
 
 PPI.displayname USPPI Fuel & Related (1982=100)
 
 'IMPORT US POPULATION (OBTAINED FROM CENSUS BUREAU)
 PAGESELECT Quarterly
-READ(t=xls, b2, s=USPOP_1970-2040) "J:\Projects\Forecasts\Regional\2010\ECO_2006\National_model\US_Population.xls" 5
+READ(t=xls, b2, s=USPOP_1970-2050) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\National_model\US_Population_ECO.xls" 5
 
 uspop0.displayname US population 0-4
 uspop5.displayname US population 5-19
 uspop20.displayname US population 20-64
 uspop65.displayname US population 65+
 uspop.displayname US population total
-
-
-
-'******************************************************************************************
-'***IMPORT GLOBAL INSIGHT DATA INTO QUARTERLY PAGE
-'******************************************************************************************
-
-PAGESELECT Quarterly
-READ(t=xls, b2, s=Eviews_Import) "J:\Projects\Forecasts\Regional\2010\ECO_2006\National_model\Global_Insight_data.xls" 20
-
-usgdpn_gi.displayname US Nominal GDP (billions $) Global Insights
-usgdpd_gi.displayname US GDP Deflator Global Insights
-usgdpr_gi.displayname US REAL GDP (billions $) Global Insights
-pim_gi.displayname Import Price Index Global Insights
-pex_gi.displayname Export Price Index Global Insights
-m1_gi.displayname US Money Supply Period Avg. (billions $) Global Insights
-
-aaa_gi.displayname Rate on US Corporate AAA Bonds Global Insights
-wldgdp_gi.displayname Real trade-wtd. GDP in major trading partners, 2000=1.0, Global Insights
-uslabfc_gi.displayname US Labor Force in Millions, Global Insights
-usresinv_gi.displayname US Residential Investment (billions $) Global Insights
-usy_gi.displayname US Industrial Production Index (97=1.0), Global Insight
-usemp_gi.displayname US Total Employment, Global Insight
-
-usur_gi.displayname US Unemployment Rate, Global Insight
-
-uspi_gi.displayname US Personal Income (Billions $), Global Insight
-usws_gi.displayname US Wage & Salary (Billions $), Global Insight
-uscpi82_gi.displayname US Consumber Price Index (82084 = 1.0), Global Insight
-usced00_gi.displayname US Consumption Expenditure Deflator (2000 = 1.0), Global Insight
-ustbill_gi.displayname US 3-Month T-bill (%), Global Insight
-us30yr_gi.displayname US Conventional Mortgage Rate (%), Global Insight
-
-
-
-
 
 
 'CREATE REGION-WIDE "HIGH-LEVEL" VARIABLES & THEN QUARTERIZE THEM
@@ -538,8 +498,6 @@ link phs
 phs.linkto(c=sum) Monthly::phsu 
 link phss
 phss.linkto(c=sum) Monthly::phssu 
-'link pnaer
-'pnaer.linkto Monthly::pnaeru 
 
 link pnres 
 pnres.linkto Monthly::pnresu 
@@ -607,6 +565,8 @@ link typ
 typ.linkto(c=c) Annual::typ
 link syp
 syp.linkto(c=c) Annual::syp
+link wyp
+wyp.linkto(c=c) Annual::wyp
 link kyws
 kyws.linkto(c=c) Annual::kyws
 link byws
@@ -615,17 +575,19 @@ link tyws
 tyws.linkto(c=c) Annual::tyws
 link syws
 syws.linkto(c=c) Annual::syws
+link wyws
+wyws.linkto(c=c) Annual::wyws
 
 kyp.displayname King County Personal Income (quarterized)
 byp.displayname Kitsap County Personal Income (quarterized)
 typ.displayname Pierce County Personal Income (quarterized)
 syp.displayname Snohomish County Personal Income (quarterized)
+wyp.displayname Washington State Personal Income (quarterized)
 kyws.displayname King County Wage & Salary Personal Income (quarterized)
 byws.displayname Kitsap County Wage & Salary Personal Income (quarterized)
 tyws.displayname Pierce County Wage & Salary Personal Income (quarterized)
 syws.displayname Snohomish County Wage & Salary Personal Income (quarterized)
-
-
+wyws.displayname Washington State Wage & Salary Personal Income (quarterized)
 
 link wpop0
 wpop0.linkto(c=c) Annual::wpop0
@@ -637,12 +599,196 @@ link wpop65
 wpop65.linkto(c=c) Annual::wpop65
 link wpop
 wpop.linkto(c=c) Annual::wpop
+
 wpop0.displayname Washington State 0-4 Population
 wpop5.displayname Washington State 5-19 Population
 wpop20.displayname Washington State 20-64 Population
 wpop65.displayname Washington State 65+ Population
 wpop.displayname Washington State Total Population
 
+link kpop0
+kpop0.linkto(c=c) Annual::kpop0
+link kpop5
+kpop5.linkto(c=c) Annual::kpop5
+link kpop20
+kpop20.linkto(c=c) Annual::kpop20
+link kpop65
+kpop65.linkto(c=c) Annual::kpop65
+link kpop
+kpop.linkto(c=c) Annual::kpop
+link kpopgrqt
+kpopgrqt.linkto(c=c) Annual::kpopgrqt
+link kpophse
+kpophse.linkto(c=c) Annual::kpophse
+link kpophsesn
+kpophsesn.linkto(c=c) Annual::kpophsesn
+link kpophseml
+kpophseml.linkto(c=c) Annual::kpophseml
+link khse
+khse.linkto(c=c) Annual::khse
+link khsesn
+khsesn.linkto(c=c) Annual::khsesn
+link khseml
+khseml.linkto(c=c) Annual::khseml
+link khsesz
+khsesz.linkto(c=c) Annual::khsesz
+link khseszsn
+khseszsn.linkto(c=c) Annual::khseszsn
+link khseszml
+khseszml.linkto(c=c) Annual::khseszml
+kpop.displayname King County Population 
+kpop0.displayname King Cty 0-4 Population
+kpop20.displayname King Cty 20-64 Population 
+kpop5.displayname King Cty 5-19 Population
+kpop65.displayname King Cty 65+ Population
+kpopgrqt.displayname King Cty Group Quarters Population
+kpophse.displayname King Cty Household Population
+kpophsesn.displayname King Cty Single-Family Population
+kpophseml.displayname King Cty Multi-Family Population
+khse.displayname King Cty Households
+khsesn.displayname King Cty Single-Family Households
+khseml.displayname King Cty Multi-Family Households
+khsesz.displayname King Cty Household Size
+khseszsn.displayname King Cty Household Size (Single-Family)
+khseszml.displayname King Cty Household Size (Multi-Family)
+
+link bpop0
+bpop0.linkto(c=c) Annual::bpop0
+link bpop5
+bpop5.linkto(c=c) Annual::bpop5
+link bpop20
+bpop20.linkto(c=c) Annual::bpop20
+link bpop65
+bpop65.linkto(c=c) Annual::bpop65
+link bpop
+bpop.linkto(c=c) Annual::bpop
+link bpopgrqt
+bpopgrqt.linkto(c=c) Annual::bpopgrqt
+link bpophse
+bpophse.linkto(c=c) Annual::bpophse
+link bpophsesn
+bpophsesn.linkto(c=c) Annual::bpophsesn
+link bpophseml
+bpophseml.linkto(c=c) Annual::bpophseml
+link bhse
+bhse.linkto(c=c) Annual::bhse
+link bhsesn
+bhsesn.linkto(c=c) Annual::bhsesn
+link bhseml
+bhseml.linkto(c=c) Annual::bhseml
+link bhsesz
+bhsesz.linkto(c=c) Annual::bhsesz
+link bhseszsn
+bhseszsn.linkto(c=c) Annual::bhseszsn
+link bhseszml
+bhseszml.linkto(c=c) Annual::bhseszml
+bpop.displayname Kitsap County Population 
+bpop0.displayname Kitsap Cty 0-4 Population
+bpop20.displayname Kitsap Cty 20-64 Population 
+bpop5.displayname Kitsap Cty 5-19 Population
+bpop65.displayname Kitsap Cty 65+ Population 
+bpopgrqt.displayname Kitsap Cty Group Quarters Population
+bpophse.displayname Kitsap Cty Household Population
+bpophsesn.displayname Kitsap Cty Single-Family Population
+bpophseml.displayname Kitsap Cty Multi-Family Population
+bhse.displayname Kitsap Cty Households
+bhsesn.displayname Kitsap Cty Single-Family Households
+bhseml.displayname Kitsap Cty Multi-Family Households
+bhsesz.displayname Kitsap Cty Household Size
+bhseszsn.displayname Kitsap Cty Household Size (Single Family)
+bhseszml.displayname Kitsap Cty Household Size (Multi-Family)
+
+link tpop0
+tpop0.linkto(c=c) Annual::tpop0
+link tpop5
+tpop5.linkto(c=c) Annual::tpop5
+link tpop20
+tpop20.linkto(c=c) Annual::tpop20
+link tpop65
+tpop65.linkto(c=c) Annual::tpop65
+link tpop
+tpop.linkto(c=c) Annual::tpop
+link tpopgrqt
+tpopgrqt.linkto(c=c) Annual::tpopgrqt
+link tpophse
+tpophse.linkto(c=c) Annual::tpophse
+link tpophsesn
+tpophsesn.linkto(c=c) Annual::tpophsesn
+link tpophseml
+tpophseml.linkto(c=c) Annual::tpophseml
+link thse
+thse.linkto(c=c) Annual::thse
+link thsesn
+thsesn.linkto(c=c) Annual::thsesn
+link thseml
+thseml.linkto(c=c) Annual::thseml
+link thsesz
+thsesz.linkto(c=c) Annual::thsesz
+link thseszsn
+thseszsn.linkto(c=c) Annual::thseszsn
+link thseszml
+thseszml.linkto(c=c) Annual::thseszml
+tpop.displayname Pierce County Population 
+tpop0.displayname Pierce Cty 0-4 Population
+tpop20.displayname Pierce Cty 20-64 Population 
+tpop5.displayname Pierce Cty 5-19 Population
+tpop65.displayname Pierce Cty 65+ Population
+tpopgrqt.displayname Pierce Cty Group Quarters Population
+tpophse.displayname Pierce Cty Household Population
+tpophsesn.displayname Pierce Cty Single-Family Population
+tpophseml.displayname Pierce Cty Multi-Family Population
+thse.displayname Pierce Cty Households
+thsesn.displayname Pierce Cty Single-Family Households
+thseml.displayname Pierce Cty Multi-Family Households
+thsesz.displayname Pierce Cty Household Size
+thseszsn.displayname Pierce Cty Household Size (Single-Family)
+thseszml.displayname Pierce Cty Household Size (Multi-Family)
+
+link spop0
+spop0.linkto(c=c) Annual::spop0
+link spop5
+spop5.linkto(c=c) Annual::spop5
+link spop20
+spop20.linkto(c=c) Annual::spop20
+link spop65
+spop65.linkto(c=c) Annual::spop65
+link spop
+spop.linkto(c=c) Annual::spop
+link spopgrqt
+spopgrqt.linkto(c=c) Annual::spopgrqt
+link spophse
+spophse.linkto(c=c) Annual::spophse
+link spophsesn
+spophsesn.linkto(c=c) Annual::spophsesn
+link spophseml
+spophseml.linkto(c=c) Annual::spophseml
+link shse
+shse.linkto(c=c) Annual::shse
+link shsesn
+shsesn.linkto(c=c) Annual::shsesn
+link shseml
+shseml.linkto(c=c) Annual::shseml
+link shsesz
+shsesz.linkto(c=c) Annual::shsesz
+link shseszsn
+shseszsn.linkto(c=c) Annual::shseszsn
+link shseszml
+shseszml.linkto(c=c) Annual::shseszml
+spop.displayname Snohomish County Population 
+spop0.displayname Snohomish Cty 0-4 Population
+spop20.displayname Snohomish Cty 20-64 Population 
+spop5.displayname Snohomish Cty 5-19 Population
+spop65.displayname Snohomish Cty 65+ Population
+spopgrqt.displayname Snohomish Cty Group Quarters Population
+spophse.displayname Snohomish Cty Household Population
+spophsesn.displayname Snohomish Cty Single-Family Population
+spophseml.displayname Snohomish Cty Multi-Family Population
+shse.displayname Snohomish Cty Households
+shsesn.displayname Snohomish Cty Single-Family Households
+shseml.displayname Snohomish Cty Multi-Family Households
+shsesz.displayname Snohomish Cty Household Size
+shseszsn.displayname Snohomish Cty Household Size (Single-Family)
+shseszml.displayname Snohomish Cty Household Size (Multi-Family)
 
 link kretail
 kretail.linkto(c=c) Annual::kretail
@@ -825,4 +971,23 @@ link snaer
 snaer.linkto Monthly::snaeru
 link tnaer
 tnaer.linkto Monthly::tnaeru
+
+close fm_extend
+
+'*** SET SAMPLE RANGES FOR REFERENCE IN MODEL -- Adjust as necessary
+'*** BECAUSE SOME DATA SERIES ARE LESS CURRENT, MODEL FILE CURRENTLY USES MORE HARD-CODED SAMPLE STATEMENTS THAN BEFORE
+SAMPLE s1970_start 1970q1 2011q3
+SAMPLE s1971_start 1971q1 2011q3
+SAMPLE s1980_start 1980Q1 2011Q3
+SAMPLE s1990_start 1990Q1 2011Q3
+SAMPLE s1980_end 1980Q1 2050Q4
+SAMPLE s1990_end 1990Q1 2050Q4
+SAMPLE s1995_end 1995Q1 2050Q4
+SAMPLE s2000_end 2000q1 2050Q4
+SAMPLE s2005_end 2005Q1 2050Q4
+SAMPLE s1970_end 1970Q1 2050Q4
+SAMPLE s1971_end 1971Q1 2050Q4
+SAMPLE s1970_YRstart 1970Q4 2010Q4
+SAMPLE sQB4cast 2009Q4 2050Q4
+SAMPLE s4cast 2011Q1 2050Q4
 
