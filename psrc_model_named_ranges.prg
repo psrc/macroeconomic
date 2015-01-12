@@ -33,7 +33,7 @@ GENR duspop20 = log(uspop20/uspop20(-4))
 GENR duspop65 = log(uspop65/uspop65(-4))
 
 '*** CREATE AEROSPACE (BOEING) & MICROSOFT ECONOMIC DRIVER VARIABLES
-SMPL s1970_end
+
 GENR dpnaer = log(pnaer/pnaer(-4))
 SMPL if pnms=0
 GENR pnms = 0.00001
@@ -64,13 +64,13 @@ GENR dum_ms = dum_ms - 1
 SMPL s1970_end
 GENR uswkfc = e_0 / (1-ur_0)
 GENR duswkfc = log(uswkfc/uswkfc(-4))
-GENR uscpi82 = ph_0 / 0.6056783
-GENR usced00 = ph_0 / 0.9789962
+GENR uscpi82 = (ph_0 / 0.568222) '1983Q3 - Midpoint of 1982-1984
+GENR usced00 = (ph_0 / 0.906840) '2000Q3
 
-'*** EXTEND USPPI FUEL & RELATED COST INDEX VARIABLE
+'*** EXTEND USg FUEL & RELATED COST INDEX VARIABLE
 '*** NOTE: THIS SERIES WAS OBATINED FROM "FRED." IT IS NOT FORECAST BY EITHER
 '*** RAY FAIR OR GLOBAL INSIGHT
-SMPL 2011:3 2050:4
+SMPL 2014:2 2050:4
 GENR ppi = ppi(-4)*exp(.04)
 
 
@@ -92,15 +92,6 @@ GENR dphse = log(phse/phse(-4))
 
 'GENERATE 1ST DIFFERENCE OF LOGS OF FAIR US & WORLD VARIABLES
 
-'The following adjust selected Fair variables for the most recent set of revised results
-for %var y yd e gdpd
-	SMPL s1970_end
-	genr {%var}_1={%var}_0
-	genr t1={%var}_0/{%var}_0(-4)-0.002
-	smpl 2021Q1 2050Q4
-	genr {%var}_0={%var}_0(-4)*t1
-next
-
 SMPL s1970_end
 GENR dgdpr = log(gdpr_0/gdpr_0(-4))
 GENR dgdpd = log(gdpd_0/gdpd_0(-4))
@@ -117,9 +108,9 @@ GENR duspi = log(yd_0/yd_0(-4))
 
 GENR drm=log(rm_0/rm_0(-4))
 GENR drb=log(rb_0/rb_0(-4))
-
 GENR dur=log(ur_0/ur_0(-4))
 GENR dph=log(ph_0/ph_0(-4))
+
 
 '*** CREATE PERSONAL CONSUMPTION EXPENDITURE VARIABLE
 SMPL s1970_end
@@ -155,8 +146,16 @@ SMPL s1990_end
 model_exog.solve
 
 'UPDATE DEPENDENT VARS FROM LEVEL 1 WITH FORECAST VALUES
+
+'GENR dpnaer = dpnaer_0 
+SMPL 2014Q1 2014Q4
+dpnaer=-0.0222259
+SMPL 2015Q1 2022Q4
+dpnaer=-0.0082673
+SMPL 2023q1 2050Q4
+dpnaer=-0.00587
+GENR dpnaer = -0.00587
 SMPL s4cast
-GENR dpnaer = dpnaer_0 
 GENR pnaer =pnaer(-1)*exp(dpnaer/4)
 GENR dpnms = dpnms_0
 GENR fcast = 1
@@ -180,11 +179,37 @@ model_1.solve
 
 'UPDATE DEPENDENT VARS FROM LEVEL 1 WITH FORECAST VALUES
 'SMPL s4cast
-smpl 2011Q4 2050Q4
+smpl 2014Q1 2050Q4
 GENR dpn = dpn_0
 GENR dwyp = dwyp_0
 GENR dscpi = dscpi_0
 GENR dwyws = dwyws_0
+
+'Adjustment to smooth late 2010s "recession".
+for %var pn wyp scpi wyws
+	smpl @all
+	genr tt_{%var}={%var}
+	genr old_d{%var}=d{%var}
+	SMPL 2014q1 2028q4
+	genr tt_{%var}=tt_{%var}(-4)*exp(d{%var})
+	genr old_{%var}=tt_{%var}
+	SMPL 2015q3 2020q4
+	tt_{%var}=@movav(tt_{%var}(+15),31)
+	genr tt1_{%var}=tt_{%var}
+	d{%var}=log(tt_{%var}/tt_{%var}(-4))
+	SMPL 2016q2 2016q2
+	tt_{%var}=(tt_{%var}(-4)+tt_{%var}(+4))/2
+	SMPL 2020q4 2020q4
+	tt_{%var}=old_{%var}
+	SMPL 2021q1 2021q1
+	tt_{%var}=(old_{%var}(-4)+old_{%var}(+4))/2
+	SMPL 2021q2 2050q4
+	tt_{%var}=old_{%var}
+	SMPL 2015q3 2023q4
+	d{%var}=log(tt_{%var}/tt_{%var}(-4))
+NEXT
+
+dpn_0=dpn 'Naming not consistently used below.
 
 'UPDATE DEPENDENT VARS FROM LEVEL 1 WITH FORECAST VALUES
 SMPL s1970_end
@@ -214,13 +239,16 @@ GENR dppop = dppop_0
 '**************************************************
 'LEVEL 2 POPULATION-DEMOGRAPHIC EQUATIONS
 '**************************************************
+SMPL @all
+genr tt=0
+smpl 2008q1 2050q4
+genr tt=1
+
 SMPL s1970_start
 
-EQUATION e2_dphse.ls dphse c dppop5(-1) dppop(-3) dpnaer(-1) dphse(-1) dpnms(-1) duspop65(-3) duspop20(-1) dpwkfc(-1) dppop(-2) dppop 
-EQUATION e2_dppophse.ls dppophse c duspop5(-1) dppop65(-1) dppop20(-1) dppophse(-1) dwyp00 dpnaer(-2) duspop65(-3) dppop0(-1) dpwkfc(-1) dpnms(-1) dppop(-1) dppop dphse(-1) 
-
-EQUATION e2_dpwkfc.ls dpwkfc c dpn dpwkfc(-1)
-
+EQUATION e2_dphse.ls dphse c dphse(-1) rm(-1) dpwkfc(-1) dppop5(-1) dpn(-1) DEMOG_VAR(-1)
+EQUATION e2_dppophse.ls dppophse c dppop dppop(-1) dppop0(-1) dppop5(-1) dppop20(-1) dppop65(-1) dppophse(-1) dpwkfc(-1) dphse(-1) DEMOG_VAR(-1)
+ EQUATION e2_dpwkfc.ls dpwkfc c dpwkfc(-1) dpn dpn(-1)
 SMPL s1970_end
 
 'Generate population shares from OFM forecast through 2040
@@ -232,6 +260,7 @@ genr ppop65_0=ppop65
 for %n 0 5 20 65
 	genr dwpop{%n}=log(wpop{%n}/wpop{%n}(-4))
 next
+
 'Extend state through 2050 using us population forecast
 
 for %n 0 5 20 65
@@ -244,16 +273,16 @@ next
 smpl 1972Q1 2050Q4
 
 for %n 0 5 20 65
-	smpl 1970Q1 2011Q4
+	smpl 1970Q1 2012Q4
 	equation eq_dppop{%n}.ls dppop{%n} c dppop(-1) duspop{%n}(-1) dwpop{%n}(-1)
 	genr ppop{%n}_0=ppop{%n}
-	smpl 2012Q1 2050Q4
+	smpl 2013Q1 2050Q4
 	eq_dppop{%n}.forecast dppop{%n}_0
 	genr dppop{%n}=dppop{%n}_0
 	genr ppop{%n}_0=ppop{%n}_0(-4)*exp(dppop{%n})
 next
 
-SMPL 2012Q1 2050Q4
+SMPL 2013Q1 2050Q4
 genr ppop_0=ppop_0(-4)*exp(dppop_0)
 
 'CREATE MODEL FROM LEVEL 2 SYSTEM OF EQUATIONS
@@ -264,9 +293,8 @@ MODEL model_2
 model_2.merge e2_dphse
 model_2.merge e2_dppophse
 model_2.merge e2_dpwkfc
-'SMPL s1980_end
-smpl 1980Q1 2050Q4
 
+smpl 1980Q1 2050Q4
 model_2.solve
 
 'EXTEND MODEL 2 VARS BASED ON FORECAST
@@ -367,6 +395,29 @@ GENR DPNFIN = DPNFIN_0
 GENR DPNPROFBUS = DPNPROFBUS_0
 GENR DPNOSERV = DPNOSERV_0
 GENR DPNGOV =DPNGOV_0
+
+'Splice ALTC data to smooth sector trends in late 2010s
+'Does not affect other downstream equations.
+wfopen PSRC2014_OUT_ALTC
+pageselect quarterly
+wfselect PSRC2014_OUT_ALTC
+for %var dpnres dpncon dpnmfg dpntrd dpntrnutil dpninfo dpnfin dpnprofbus dpnoserv dpngov
+	wfselect PSRC2014
+	genr {%var}_OLD={%var}
+	wfselect PSRC2014_OUT_ALTC
+	genr {%var}_ALTC={%var}
+	wfselect PSRC2014
+	copy PSRC2014_OUT_ALTC::{%var}_ALTC PSRC2014:: 
+NEXT
+
+for %var dpnres dpncon dpnmfg dpntrd dpntrnutil dpninfo dpnfin dpnprofbus dpnoserv dpngov
+	smpl 2017Q1 2017Q4
+	{%var}=({%var}_OLD+{%var}_ALTC)/2
+	smpl 2018Q1 2021Q4
+	{%var}={%var}_ALTC
+	smpl 2022q1 2022q4
+	{%var}=({%var}_OLD+{%var}_ALTC)/2
+NEXT
 
 SMPL s1970_end
 
@@ -520,7 +571,7 @@ GENR dppophseml = dppophseml_0
 
 
 '**************************************************
-'LEVEL 6b OLS EQUATION---FORECAST BUILING PERMITS (LINEAR MODEL)
+'LEVEL 6b OLS EQUATION---FORECAST BUILDING PERMITS (LINEAR MODEL)
 '**************************************************
 SMPL s4cast
 phse = phse(-4)*exp(dphse)
@@ -784,10 +835,8 @@ GENR ppophseml_0 = ppophseml_0 * adj_ppophse
 GENR phseszsn_0 = ppophsesn_0/phsesn_0
 GENR phseszml_0 = ppophseml_0/phseml_0
 
-
-
 SMPL s1970_end
-WRITE 	 "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Master eView Model\OUT_DATA_region.xls" pn_0 pngoods_0 pnres_0 pncon_0 pnmfg_0 pnaer_0 pnodur_0 pnndur_0 pnserv_0 pntrd_0 pnwhtrd_0 pnretrd_0 pntrnutil_0 pntrn_0 pnutil_0 pninfo_0 pncom_0 pnoinfo_0 pnfin_0 pnprofbus_0 pnoserv_0 pneat_0 pneduc_0 pnhlth_0 pnoservx_0 pngov_0 pngovsl_0 pngovseduc_0 pngovleduc_0 pngovosl_0 pngovfed_0 pnmil_0 pur_0 pyp_0 pyp00 pyws00 pyoth00 pypp00 scpi_0 phs_0 ppop_0 ppop0_0 ppop5_0 ppop20_0 ppop65_0 ppopgrqt_0 ppophse_0 ppophsesn_0 ppophseml_0 phse_0 phsesn_0 phseml_0 phsesz_0 phseszsn_0 phseszml_0 usced00
+WRITE 	 "Master eView Model\OUT_DATA_region_FINAL.xls" pn_0 pngoods_0 pnres_0 pncon_0 pnmfg_0 pnaer_0 pnodur_0 pnndur_0 pnserv_0 pntrd_0 pnwhtrd_0 pnretrd_0 pntrnutil_0 pntrn_0 pnutil_0 pninfo_0 pncom_0 pnoinfo_0 pnfin_0 pnprofbus_0 pnoserv_0 pneat_0 pneduc_0 pnhlth_0 pnoservx_0 pngov_0 pngovsl_0 pngovseduc_0 pngovleduc_0 pngovosl_0 pngovfed_0 pnmil_0 pur_0 pyp_0 pyp00 pyws00 pyoth00 pypp00 scpi_0 phs_0 ppop_0 ppop0_0 ppop5_0 ppop20_0 ppop65_0 ppopgrqt_0 ppophse_0 ppophsesn_0 ppophseml_0 phse_0 phsesn_0 phseml_0 phsesz_0 phseszsn_0 phseszml_0 usced00
 
 
 '*******************************************************************************
@@ -1217,7 +1266,7 @@ GENR adj_sypp00 = adj_syp00 / adj_spop
 '*** WRITE OUT COUNTY FORECAST TO EXCEL WORKBOOK
 
 SMPL s1970_end
-WRITE "C:\Documents and Settings\Andrew Dyke\My Documents\2011Q4 run\Master eView Model\OUT_DATA_counties.xls" adj_kn adj_kngoods adj_knaer adj_knserv adj_kyp adj_kyp00 adj_kypp00 adj_kpop adj_khse adj_khsesn adj_khseml adj_bn adj_bngoods adj_bnserv adj_byp adj_byp00 adj_bypp00 adj_bpop adj_bhse adj_bhsesn adj_bhseml adj_tn adj_tngoods adj_tnaer adj_tnserv adj_typ adj_typ00 adj_typp00 adj_tpop adj_thse adj_thsesn adj_thseml adj_sn adj_sngoods adj_snaer adj_snserv adj_syp adj_syp00 adj_sypp00 adj_spop adj_shse adj_shsesn adj_shseml
+WRITE "Master eView Model\OUT_DATA_counties.xls" adj_kn adj_kngoods adj_knaer adj_knserv adj_kyp adj_kyp00 adj_kypp00 adj_kpop adj_khse adj_khsesn adj_khseml adj_bn adj_bngoods adj_bnserv adj_byp adj_byp00 adj_bypp00 adj_bpop adj_bhse adj_bhsesn adj_bhseml adj_tn adj_tngoods adj_tnaer adj_tnserv adj_typ adj_typ00 adj_typp00 adj_tpop adj_thse adj_thsesn adj_thseml adj_sn adj_sngoods adj_snaer adj_snserv adj_syp adj_syp00 adj_sypp00 adj_spop adj_shse adj_shsesn adj_shseml
 
 
 '*********************************************************
@@ -1320,7 +1369,7 @@ GENR dpothveh = log(pothveh / pothveh(-4))
 
 'APPLY X-SECTIONAL COEFFICIENTS FROM MONORAIL PROJECT
 'SMPL s4cast
-smpl 2010Q1 2050Q4
+smpl 2013Q1 2050Q4
 GENR pvehic = pvehic(-4) * exp(0.121*dpyphh00 + 0.859*dphse   + 0.734*dphsesz)
 GENR kvehic = kvehic(-4) * exp(0.121*dkyphh00 + 0.859*dkhse_0 + 0.734*dkhsesz)
 GENR bvehic = bvehic(-4) * exp(0.121*dbyphh00 + 0.859*dbhse_0 + 0.734*dbhsesz)
@@ -1390,7 +1439,7 @@ rev_pmvet.FORECAST dpmvet00_0
 SMPL s1970_start
 GENR wfuel_0 = wfuel
 'SMPL s4cast
-SMPL 2009Q1 2050Q4
+SMPL 2013Q1 2050Q4 'No 2013 fuel data incorporated.
 GENR wfuel_0 = wfuel_0(-4) * exp(dwfuel_0)
 
 
@@ -1499,5 +1548,7 @@ GENR smvet_0 = smvet_0 * pmvet_adj
 '*** WRITE OUT REVENUE FORECAST TO EXCEL WORKBOOK
 
 SMPL s1970_end
-WRITE "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Master eView Model\OUT_REVENUE2.xls" pretail_0 kretail_0 bretail_0 tretail_0 sretail_0   pvehic pcar_0 ptrkgas_0 ptrkdies_0 pothveh_0    kvehic_0 bvehic_0 tvehic_0 svehic_0   pmvet_0 kmvet_0 bmvet_0 tmvet_0 smvet_0   wfuel_0
+WRITE "Master eView Model\OUT_REVENUE2.xls" pretail_0 kretail_0 bretail_0 tretail_0 sretail_0   pvehic pcar_0 ptrkgas_0 ptrkdies_0 pothveh_0    kvehic_0 bvehic_0 tvehic_0 svehic_0   pmvet_0 kmvet_0 bmvet_0 tmvet_0 smvet_0   wfuel_0
+
+wfsave psrc2014_out_FINAL
 
