@@ -6,19 +6,33 @@
 'TO DO THIS, OPEN THE FAIR MODEL WORKFILE, SELECT THE FORECAST PAGE, SET THE SAMPLE, EXPORT VARIABLE TO EXCEL,
 'AND THEN IMPORT FROM EXCEL INTO THE QUARTERLY PAGE OF THIS WORKFILE (DONE DOWN BELOW)
 '''''''''''''''''''''''''''''''''''''''''''''''''''f''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-WFOPEN "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\National_model\FMEV\fm_extend"
+cd "C:\Documents and Settings\Andrew Dyke\My Documents\21901 PSRC 2014\"
+WFOPEN "National_model\fm_extend"
 
 PAGESELECT Untitled
+
 smpl 1970Q1 2050Q4
 
+'Rename relevant Fair and VAR series for use in model
+ur_0=ur_0*100 'So units consistent with earlier models.
+for %var gdpr gdpd e y yd wf ph ur rs rm rb pex m1 rb pex ur y gdpd wf gdpr rm yd rs rm ihh ph e
+	genr {%var}_OLD={%var}_0
+	genr d{%var}_OLD=d{%var}_0
+	{%var}_0={%var}P
+	d{%var}_0=d{%var}P
+NEXT
+genr pim_OLD=pim
+genr dpim_OLD=dpim
+pim=pimP
+dpim=dpimP
+
 'Unadjusted
-WRITE 	 "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\National_model\US_out_data.xls" gdpr_0 gdpd_0 pim pex_0 ph_0 e_0 wf_0 m1_0 ur_0 rs_0 rb_0 rm_0 ihh_0 y_0 yd_0
+WRITE 	 "National_model\US_out_data.xls" gdpr_0 gdpd_0 pim pex_0 ph_0 e_0 wf_0 m1_0 ur_0 rs_0 rb_0 rm_0 ihh_0 y_0 yd_0 OLDAGEDR1664Q YOUTHDR16Q PCTPOPWORKAGE1664Q DEMOG_VAR
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 'SECOND, CREATE WORKFILE WITH A MONTHLY, QUARTERLY, AND ANNUAL PAGE
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-WFCREATE (WF="PSRC2011") m 1970:01 2050:12
+WFCREATE (WF="PSRC2014") m 1970:01 2050:12
 PAGERENAME Untitled Monthly
 
 PAGECREATE (page="Quarterly") q 1970Q1 2050Q4
@@ -28,14 +42,13 @@ PAGECREATE (page="Annual") a 1970 2050
 PAGERENAME Untitled Annual
 
 
-
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 'THIRD, IMPORT ANNUAL DATA INTO WORKFILE & CREATE DISPLAY NAMES
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 PAGESELECT Annual
 
 'IMPORT COUNTY-LEVEL PERSONAL INCOME DATA INTO ANNUAL PAGE 
-READ(t=xls, b2, s=Personal_Income) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 10
+READ(t=xls, b2, s=Personal_Income) "Historical_data\PSRC_Historic_Economic.xls" 10
 
 kyp.displayname King Personal Income
 byp.displayname Kitsap Personal Income
@@ -52,13 +65,13 @@ syws.displayname Snohomish Wage & Salary Personal Income
 pyws.displayname Puget Sound Wage & Salary Personal Income
 
 'IMPORT WASHINGTON PERSONAL INCOME INTO QUARTERLY PAGE
-READ(t=xls, b3, s=WA_Pers_Inc) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 2
+READ(t=xls, b3, s=WA_Pers_Inc) "Historical_data\PSRC_Historic_Economic.xls" 2
 
 wyp.displayname WA Total Personal Income
 wyws.displayname WA Wage & Salary Income 
 
 'IMPORT KING COUNTY POPULATION DATA INTO QUARTERLY PAGE
-READ(t=xls, b3, s=King-POP) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 15
+READ(t=xls, b3, s=King-POP) "Historical_data\PSRC_Historic_Economic.xls" 15
 
 kpop.displayname King County Population 
 kpop0.displayname King Cty 0-4 Population
@@ -78,7 +91,7 @@ khseszml.displayname King Cty Household Size (Multi-Family)
 
 
 'IMPORT KITSAP COUNTY POPULATION DATA INTO QUARTERLY PAGE
-READ(t=xls, b3, s=Kitsap-POP) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 15
+READ(t=xls, b3, s=Kitsap-POP) "Historical_data\PSRC_Historic_Economic.xls" 15
 
 bpop.displayname Kitsap County Population 
 bpop0.displayname Kitsap Cty 0-4 Population
@@ -98,7 +111,7 @@ bhseszml.displayname Kitsap Cty Household Size (Multi-Family)
 
 
 'IMPORT PIERCE COUNTY POPULATION DATA INTO QUARTERLY PAGE
-READ(t=xls, b3, s=Pierce-POP) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 15
+READ(t=xls, b3, s=Pierce-POP) "Historical_data\PSRC_Historic_Economic.xls" 15
 
 tpop.displayname Pierce County Population 
 tpop0.displayname Pierce Cty 0-4 Population
@@ -118,7 +131,7 @@ thseszml.displayname Pierce Cty Household Size (Mulit-Family)
 
 
 'IMPORT SNOHOMISH COUNTY POPULATION DATA INTO QUARTERLY PAGE
-READ(t=xls, b3, s=Snohomish-POP) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 15
+READ(t=xls, b3, s=Snohomish-POP) "Historical_data\PSRC_Historic_Economic.xls" 15
 
 spop.displayname Snohomish County Population 
 spop0.displayname Snohomish Cty 0-4 Population
@@ -138,7 +151,7 @@ shseszml.displayname Snohomish Cty Household Size (Multi-Family)
 
 
 'IMPORT STATE-LEVEL POPULATION DATA INTO ANNUAL PAGE 
-READ(t=xls, b3, s=State_Population) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 5
+READ(t=xls, b3, s=State_Population) "Historical_data\PSRC_Historic_Economic.xls" 5
 
 wpop0.displayname Washington State 0-4 Population
 wpop5.displayname Washington State 5-19 Population
@@ -153,7 +166,7 @@ wpop.displayname Washington State Total Population
 PAGESELECT Annual
 
 'IMPORT COUNTY-LEVEL TAXABLE RETAIL SALES DATA INTO ANNUAL PAGE 
-READ(t=xls, b2, s=Retail_Sales) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\REVENUE_DATA.xls" 4
+READ(t=xls, b2, s=Retail_Sales) "Historical_data\REVENUE_DATA.xls" 4
 
 KRETAIL.displayname King Taxable Retail Sales
 BRETAIL.displayname Kitsap Taxable Retail Sales
@@ -163,7 +176,7 @@ TRETAIL.displayname Snohomish Taxable Retail Sales
 
 
 'IMPORT STATE-LEVEL FUEL SALES DATA INTO ANNUAL PAGE 
-READ(t=xls, b2, s=Fuel_Sales) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\REVENUE_DATA.xls" 5
+READ(t=xls, b2, s=Fuel_Sales) "Historical_data\REVENUE_DATA.xls" 5
 
 KFUEL.displayname King County Total Fuel Sold (thous. gallons)
 BFUEL.displayname Kitsap County Total Fuel Sold (thous. gallons)
@@ -173,7 +186,7 @@ WFUEL.displayname Washington State Total Fuel Sold (thous. gallons)
 
 
 'IMPORT COUNTY- AND STATE-LEVEL VEHICLES BY CLASS DATA INTO ANNUAL PAGE 
-READ(t=xls, b4, s=Vehicles) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\REVENUE_DATA.xls" 20
+READ(t=xls, b4, s=Vehicles) "Historical_data\REVENUE_DATA.xls" 20
 
 KCAR.displayname King County Passenger Vehicles
 KTRKGAS.displayname King County Gasoline Trucks
@@ -202,7 +215,7 @@ WOTHVEH.displayname Washington State Other Vehicles
 
 
 'IMPORT COUNTY-LEVEL MVET DATA INTO ANNUAL PAGE 
-READ(t=xls, b2, s=MVET_data) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\Cty_MVET_data.xls" 4
+READ(t=xls, b2, s=MVET_data) "Historical_data\Cty_MVET_data.xls" 4
 
 KMVET.displayname King County MVET Base Value
 BMVET.displayname Kistap County MVET Base Value
@@ -215,7 +228,7 @@ SMVET.displayname Snohomish County MVET Base Value
 PAGESELECT Monthly
 
 'IMPORT COUNTY-LEVEL UNEMPLOYMENT RATE DATA INTO MONTHLY PAGE (TO DERIVE WORKFORCE NUMBERS) 
-READ(t=xls, b4, s=County_Unemp_Rates) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\Cty_Unemp_rates_ECO.xls" 4
+READ(t=xls, b4, s=County_Unemp_Rates) "Historical_data\Cty_Unemp_rates.xls" 4
 
 kunrtu.displayname King Unemp Rate (not seasonally adjusted)
 bunrtu.displayname Kitsap Unemp Rate (not seasonally adjusted)
@@ -224,7 +237,7 @@ sunrtu.displayname Snohomish Unemp Rate (not seasonally adjusted)
 
 
 'IMPORT COUNTY-LEVEL BUILDING PERMIT DATA INTO MONTHLY PAGE 
-READ(t=xls, b4, s=Build_Permit_Monthly) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 8
+READ(t=xls, b4, s=Build_Permit_Monthly) "Historical_data\PSRC_Historic_Economic.xls" 8
 
 khssu.displayname King single-family build permits
 khsu.displayname King build permits, total units 
@@ -238,7 +251,7 @@ shssu.displayname Snohomish build permits, total units
 
 
 'IMPORT KING COUNTY EMPLOYMENT DATA INTO MONTHLY PAGE 
-READ(t=xls, b4, s=King_update) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\WA_Employment_ECO.xls" 31
+READ(t=xls, b4, s=King_update) "Historical_data\WA_Employment.xls" 31
 
 KNU.displayname King: Wage & Salary Employment (not season adj)
 KNGOODSU.displayname King: Goods Producing Employment (not season adj)
@@ -273,9 +286,8 @@ KNGOVOSLU.displayname King: Other State & Local Employment (not season adj)
 KNGOVFEDU.displayname King: Federal Civilian Employment (not season adj)
 
 
-
 'IMPORT KITSAP COUNTY EMPLOYMENT DATA INTO MONTHLY PAGE 
-READ(t=xls, b4, s=Kitsap_update) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\WA_Employment_ECO.xls" 31
+READ(t=xls, b4, s=Kitsap_update) "Historical_data\WA_Employment.xls" 31
 
 BNU.displayname Kitsap: Wage & Salary Employment (not season adj)
 BNGOODSU.displayname Kitsap: Goods Producing Employment (not season adj)
@@ -312,7 +324,7 @@ BNGOVFEDU.displayname Kitsap: Federal Civilian Employment (not season adj)
 
 
 'IMPORT PIERCE COUNTY EMPLOYMENT DATA INTO MONTHLY PAGE 
-READ(t=xls, b4, s=Pierce_update) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\WA_Employment_ECO.xls" 31
+READ(t=xls, b4, s=Pierce_update) "Historical_data\WA_Employment.xls" 31
 
 TNU.displayname Pierce: Wage & Salary Employment (not season adj)
 TNGOODSU.displayname Pierce: Goods Producing Employment (not season adj)
@@ -349,7 +361,7 @@ TNGOVFEDU.displayname Pierce: Federal Civilian Employment (not season adj)
 
 
 'IMPORT SNOHOMISH COUNTY EMPLOYMENT DATA INTO MONTHLY PAGE 
-READ(t=xls, b4, s=Snohomish_update) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\WA_Employment_ECO.xls" 31
+READ(t=xls, b4, s=Snohomish_update) "Historical_data\WA_Employment.xls" 31
 
 SNU.displayname Snohomish: Wage & Salary Employment (not season adj)
 SNGOODSU.displayname Snohomish: Goods Producing Employment (not season adj)
@@ -389,19 +401,19 @@ SNGOVFEDU.displayname Snohomish: Federal Civilian Employment (not season adj)
 PAGESELECT Quarterly
 
 'IMPORT SEATTLE CPI INTO QUARTERLY PAGE 
-READ(t=xls, b3, s=Seattle_CPI) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PSRC_Historic_Economic_ECO.xls" 1
+READ(t=xls, b3, s=Seattle_CPI) "Historical_data\PSRC_Historic_Economic.xls" 1
 
 scpi.displayname Seattle CPI 2000=1.0
 
 
 'IMPORT PUGET SOUND MILITARY EMPLOYMENT DATA INTO QUARTERLY PAGE
-READ(t=xls, b2, s=Sheet1) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PugetSound_military_ECO.xls" 1
+READ(t=xls, b2, s=Sheet1) "Historical_data\PugetSound_military.xls" 1
 
 PNMIL.displayname Puget Sound Military Employment
 
 
 'IMPORT EXOGENOUS PUGET SOUND DATA INTO QUARTERLY PAGE
-READ(t=xls, b2, s=Sheet1) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\Historical_data\PugetSound_EXOG_ECO.xls" 3
+READ(t=xls, b2, s=Sheet1) "Historical_data\PugetSound_EXOG.xls" 3
 
 PNAER.displayname Puget Sound Aerospace Employment
 PNMS.displayname Puget Sound Microsoft Employment
@@ -411,8 +423,10 @@ PYSTK.displayname Puget Sound Stock Option (MILLIONS OF $)
 
 'IMPORT NATIONAL DATA (DERIVED FROM FAIR MODEL) INTO QUARTERLY WORKPAGE
 PAGESELECT Quarterly
-READ(t=xls, b2, s=Sheet1) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\National_model\US_out_data.xls" 15
+READ(t=xls, b2, s=Sheet1) "National_model\US_out_data.xls" 20
 
+'NEED TO UPDATE LABELS
+'NEED TO UPDATE LABELS
 GDPR_0.displayname US GDP B2000$
 GDPD_0.displayname GDP price deflator
 PIM.displayname Price Deflator for Imports
@@ -432,13 +446,13 @@ YD_0.displayname Disposable Income (Personal Income)
 
 'IMPORT PPI "FUEL & RELATED PRODUCTS & POWER" INDEX (OBTAINED FROM "FRED")
 PAGESELECT Quarterly
-READ(t=xls, c2, s=USPPI_fuel_quarterly.xls) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\National_model\USPPI_fuel_quarterly_ECO.xls" 1
+READ(t=xls, c2, s=USPPI_fuel_quarterly.xls) "National_model\USPPI_fuel_quarterly.xls" 1
 
 PPI.displayname USPPI Fuel & Related (1982=100)
 
 'IMPORT US POPULATION (OBTAINED FROM CENSUS BUREAU)
 PAGESELECT Quarterly
-READ(t=xls, b2, s=USPOP_1970-2050) "C:\Documents and Settings\Andrew Dyke\My Documents\Revised model\National_model\US_Population_ECO.xls" 5
+READ(t=xls, b2, s=USPOP_1970-2050) "National_model\US_Population.xls" 5
 
 uspop0.displayname US population 0-4
 uspop5.displayname US population 5-19
@@ -976,10 +990,10 @@ close fm_extend
 
 '*** SET SAMPLE RANGES FOR REFERENCE IN MODEL -- Adjust as necessary
 '*** BECAUSE SOME DATA SERIES ARE LESS CURRENT, MODEL FILE CURRENTLY USES MORE HARD-CODED SAMPLE STATEMENTS THAN BEFORE
-SAMPLE s1970_start 1970q1 2011q3
-SAMPLE s1971_start 1971q1 2011q3
-SAMPLE s1980_start 1980Q1 2011Q3
-SAMPLE s1990_start 1990Q1 2011Q3
+SAMPLE s1970_start 1970q1 2013q4
+SAMPLE s1971_start 1971q1 2013q4
+SAMPLE s1980_start 1980Q1 2013Q4
+SAMPLE s1990_start 1990Q1 2013Q4
 SAMPLE s1980_end 1980Q1 2050Q4
 SAMPLE s1990_end 1990Q1 2050Q4
 SAMPLE s1995_end 1995Q1 2050Q4
@@ -987,7 +1001,9 @@ SAMPLE s2000_end 2000q1 2050Q4
 SAMPLE s2005_end 2005Q1 2050Q4
 SAMPLE s1970_end 1970Q1 2050Q4
 SAMPLE s1971_end 1971Q1 2050Q4
-SAMPLE s1970_YRstart 1970Q4 2010Q4
-SAMPLE sQB4cast 2009Q4 2050Q4
-SAMPLE s4cast 2011Q1 2050Q4
+SAMPLE s1970_YRstart 1970Q4 2013Q4
+SAMPLE sQB4cast 2013Q1 2050Q4 'This was 2011Q1 in prior version.
+SAMPLE s4cast 2014Q1 2050Q4 'This was 2011Q1 in prior version
+
+wfsave psrc2014
 
