@@ -2552,34 +2552,32 @@ genr gascap=wfuel /wpopB
 
 
 
-GENR kvehic = kcar + ktrkgas + ktrkdie + kothveh
+GENR kvehic = kcar + ktrkgas + ktrkdie
 
-GENR bvehic = bcar + btrkgas + btrkdie + bothveh
+GENR bvehic = bcar + btrkgas + btrkdie
 
-GENR tvehic = tcar + ttrkgas + ttrkdie + tothveh
+GENR tvehic = tcar + ttrkgas + ttrkdie
 
-GENR svehic = scar + strkgas + strkdie + sothveh
+GENR svehic = scar + strkgas + strkdie
 
 GENR pvehic = kvehic + bvehic + tvehic + svehic
 
-GENR pcar = kcar + bcar + tcar + scar
+GENR pvehlight = kcar + bcar + tcar + scar + ktrkgas + btrkgas + ttrkgas + strkgas
 
-GENR ptrkgas = ktrkgas + btrkgas + ttrkgas + strkgas 
-
-GENR ptrkdie = ktrkdie + btrkdie + ttrkdie + strkdie
-
-GENR pothveh = kothveh + bothveh + tothveh + sothveh
+GENR pvehheavy = ktrkdie + btrkdie + ttrkdie + strkdie
 
 
 
 genr pvehiccap=pvehic/ppop_0
 
-genr pcarcap=pcar/ppop_0
+genr pvehlightcap=pvehlight/ppop_0
+genr pvehheavycap=pvehheavy/ppop_0
 
 genr dpvehiccap=log(pvehiccap/pvehiccap(-4))
 
-genr dpcarcap=log(pcarcap/pcarcap(-4))
+genr dpvehlightcap=log(pvehlightcap/pvehlightcap(-4))
 
+genr dpvehheavycap=log(pvehheavycap/pvehheavycap(-4))
 
 
 'Extend gas and vehicle series using national VAR indices
@@ -2590,13 +2588,15 @@ genr wfuel_0=wfuel
 
 genr pvehic_0=pvehic
 
-genr pcar_0=pcar
+genr pvehlight_0=pvehlight
+genr pvehheavy_0=pvehheavy
 
 for %var k b t s
 
 	genr {%var}vehic_0={%var}vehic
 
-	genr {%var}car_0={%var}car
+	genr {%var}vehlight_0={%var}vehlight
+	genr {%var}vehheavy_0={%var}vehheavy
 
 next %var
 
@@ -2608,19 +2608,22 @@ gascap=gascap(-4)*exp(dtfuelcap)
 
 pvehiccap=pvehiccap(-4)*exp(dtvcap)
 
-pcarcap=pcarcap(-4)*exp(davcap)
+pvehlightcap=pvehlightcap(-4)*exp(davcap)
+pvehheavycap=pvehheavycap(-4)*exp(davcap)
 
 wfuel_0=gascap*wpopB
 
 pvehic_0=pvehiccap*ppop_0
 
-genr pcar_00=pcarcap*ppop_0
+genr pvehlight_00=pvehlightcap*ppop_0
+genr pvehheavy_00=pvehheavycap*ppop_0
 
 for %var k b t s
 
 	genr {%var}vehic_0=pvehiccap*adj_{%var}pop
 
-	genr {%var}car_0=pcarcap*adj_{%var}pop
+	genr {%var}vehlight_0=pvehlightcap*adj_{%var}pop
+	genr {%var}vehheavy_0=pvehheavycap*adj_{%var}pop
 
 next %var
 
@@ -2798,7 +2801,7 @@ GENR dpothveh = log(pothveh / pothveh(-4))
 
 
 
-'ESTIMATE VAR MODEL OF REGIONAL VEHICLS 
+'ESTIMATE VAR MODEL OF REGIONAL VEHICLES 
 
 smpl @all
 
