@@ -1353,6 +1353,75 @@ WRITE %name adj_kn adj_kngoods adj_knaer adj_knserv adj_kyp adj_kyp00 adj_kypp00
 '*********************************************************
 '******************* REVENUE FORECAST ********************
 '*********************************************************
+'Incorporate national fuel and vehicle VAR indices
+pageselect annual
+read(t=xls, b2, s=Sheet1) "National_model\vehic-gas-out.xls" 4
+GENR dafuelcap=log(imp_fuelgalcap/imp_fuelgalcap(-1))
+GENR dtfuelcap=log(imp_totfuelgalcap/imp_totfuelgalcap(-1))
+GENR davcap=log(avehcap/avehcap(-1))
+GENR dtvcap=log(totvehcap/totvehcap(-1))
+
+pageselect quarterly
+for %var dafuelcap dtfuelcap davcap dtvcap
+	link {%var}
+	{%var}.linkto(c=q) Annual::{%var}
+next %var
+
+'generate per capita PSRC series
+for %var 0 5 20 65
+	smpl s1970_start
+	genr wpop{%var}_0=wpop{%var}
+	smpl s4cast
+	genr wpop{%var}_0=wpop{%var}_0(-4) * exp(dwpop{%var}_0)
+next
+smpl @all
+genr wpopB=wpop0_0+wpop5_0+wpop20_0+wpop65_0
+genr dwpopB=log(wpopB/wpopB(-4))
+genr wpopB=wpop0_0+wpop5_0+wpop20_0+wpop65_0
+genr gascap=wfuel /wpopB
+
+GENR kvehic = kcar + ktrkgas + ktrkdie
+GENR bvehic = bcar + btrkgas + btrkdie
+GENR tvehic = tcar + ttrkgas + ttrkdie
+GENR svehic = scar + strkgas + strkdie
+GENR pvehic = kvehic + bvehic + tvehic + svehic
+GENR pvehlight = kcar + bcar + tcar + scar + ktrkgas + btrkgas + ttrkgas + strkgas
+GENR pvehheavy = ktrkdie + btrkdie + ttrkdie + strkdie
+
+genr pvehiccap=pvehic/ppop_0
+genr pvehlightcap=pvehlight/ppop_0
+genr pvehheavycap=pvehheavy/ppop_0
+genr dpvehiccap=log(pvehiccap/pvehiccap(-4))
+genr dpvehlightcap=log(pvehlightcap/pvehlightcap(-4))
+genr dpvehheavycap=log(pvehheavycap/pvehheavycap(-4))
+
+'Extend gas and vehicle series using national VAR indices
+smpl @all
+genr wfuel_0=wfuel
+genr pvehic_0=pvehic
+genr pvehlight_0=pvehlight
+genr pvehheavy_0=pvehheavy
+for %var k b t s
+	genr {%var}vehic_0={%var}vehic
+	genr {%var}vehlight_0={%var}vehlight
+	genr {%var}vehheavy_0={%var}vehheavy
+next %var
+
+smpl sQB4cast
+gascap=gascap(-4)*exp(dtfuelcap)
+pvehiccap=pvehiccap(-4)*exp(dtvcap)
+pvehlightcap=pvehlightcap(-4)*exp(davcap)
+pvehheavycap=pvehheavycap(-4)*exp(davcap)
+wfuel_0=gascap*wpopB
+pvehic_0=pvehiccap*ppop_0
+genr pvehlight_00=pvehlightcap*ppop_0
+genr pvehheavy_00=pvehheavycap*ppop_0
+for %var k b t s
+	genr {%var}vehic_0=pvehiccap*adj_{%var}pop
+	genr {%var}vehlight_0=pvehlightcap*adj_{%var}pop
+	genr {%var}vehheavy_0=pvehheavycap*adj_{%var}pop
+next %var
+
 SMPL s1970_end
 GENR pretail = kretail + bretail + tretail + sretail
 GENR dpretail = log(pretail/pretail(-4))
@@ -1365,15 +1434,15 @@ GENR dwfuel = log(wfuel/wfuel(-4))
 
 GENR dwpop = log(wpop/wpop(-4))
 
-GENR pcar = kcar + bcar + tcar + scar
-GENR ptrkgas = ktrkgas + btrkgas + ttrkgas + strkgas 
-GENR ptrkdie = ktrkdie + btrkdie + ttrkdie + strkdie
-GENR pothveh = kothveh + bothveh + tothveh + sothveh
-
-
 'FIRST FORECAST STATE-LEVEL GALLONS OF FUEL (NOTE: GAS & DIESEL ARE TAXED THE SAME)
 SMPL s1970_start
 GENR wyp_0 = wyp
+
+'Adjust dphse forecast to respect final household count output.
+smpl @all
+dphse=log(phse_0/phse_0(-4))
+
+'Create variables
 SMPL s4cast
 GENR wyp_0 = wyp_0(-4) * exp(dwyp)
 SMPL s1970_end
@@ -1381,9 +1450,6 @@ GENR wyp_0 = wyp_0 / usced00
 GENR wyp00 = wyp_0 / usced00
 GENR dwyp00 = log(wyp_0 / wyp_0(-4))
 GENR dwyphh00 = dwyp00 - dphse
-EQUATION rev_dwfuel.ls dwfuel dwfuel(-1) dppi dwyphh00 dphse @trend
-SMPL s1980_end
-rev_dwfuel.FORECAST dwfuel_0
 
 '**************************************************************************
 'SECOND FORECAST REGIONAL-LEVEL & COUNTY-LEVEL RETAIL SALES
@@ -1429,17 +1495,11 @@ GENR dbhsesz = dbpop_0 - dbhse_0
 GENR dthsesz = dtpop_0 - dthse_0
 GENR dshsesz = dspop_0 - dshse_0
 
-GENR kvehic = kcar + ktrkgas + ktrkdie + kothveh
-GENR bvehic = bcar + btrkgas + btrkdie + bothveh
-GENR tvehic = tcar + ttrkgas + ttrkdie + tothveh
-GENR svehic = scar + strkgas + strkdie + sothveh
-GENR dkvehic = log(kvehic / kvehic(-4))
-GENR dbvehic = log(bvehic / bvehic(-4))
-GENR dtvehic = log(tvehic / tvehic(-4))
-GENR dsvehic = log(svehic / svehic(-4))
+GENR dkvehic = log(kvehic_0 / kvehic_0(-4))
+GENR dbvehic = log(bvehic_0 / bvehic_0(-4))
+GENR dtvehic = log(tvehic_0 / tvehic_0(-4))
+GENR dsvehic = log(svehic_0 / svehic_0(-4))
 
-GENR pvehic = kvehic + bvehic + tvehic + svehic
-GENR pcar = kcar + bcar + tcar + scar
 GENR ptrkgas = ktrkgas + btrkgas + ttrkgas + strkgas
 GENR ptrkdies = ktrkdie + btrkdie + ttrkdie + strkdie
 GENR pothveh = kothveh + bothveh + tothveh + sothveh
@@ -1448,18 +1508,13 @@ GENR dptrkgas = log(ptrkgas / ptrkgas(-4))
 GENR dptrkdies = log(ptrkdies / ptrkdies(-4))
 GENR dpothveh = log(pothveh / pothveh(-4))
 
-'APPLY X-SECTIONAL COEFFICIENTS FROM MONORAIL PROJECT
-'SMPL s4cast
-smpl 2017Q1 2050Q4
-GENR pvehic = pvehic(-4) * exp(0.121*dpyphh00 + 0.859*dphse   + 0.734*dphsesz)
-GENR kvehic = kvehic(-4) * exp(0.121*dkyphh00 + 0.859*dkhse_0 + 0.734*dkhsesz)
-GENR bvehic = bvehic(-4) * exp(0.121*dbyphh00 + 0.859*dbhse_0 + 0.734*dbhsesz)
-GENR tvehic = tvehic(-4) * exp(0.121*dtyphh00 + 0.859*dthse_0 + 0.734*dthsesz)
-GENR svehic = svehic(-4) * exp(0.121*dsyphh00 + 0.859*dshse_0 + 0.734*dshsesz)
-
-'ESTIMATE VAR MODEL OF REGIONAL VEHICLS 
-SMPL s1970_start
-VAR carvar.ls(h) 1 4 dpcar dptrkgas dptrkdies dpothveh @ C
+'ESTIMATE VAR MODEL OF REGIONAL VEHICLES 
+smpl @all
+genr dpvehic=log(pvehic_0/pvehic_0(-4))
+genr dpcar=log(pcar_00/pcar_00(-4))
+smpl s1970_start
+dpcar=log(pcar/pcar(-4))
+VAR carvar.ls(h) 1 4 dptrkgas dptrkdies dpothveh @ C dpvehic
 
 'CREATE MODEL FROM "carvar" VAR MODEL
 MODEL carvar_mod
@@ -1468,7 +1523,6 @@ SMPL s1980_end
 carvar_mod.solve
 
 GENR dpvehic = log(pvehic / pvehic(-4))
-
 
 '**************************************************************************************
 'ESTIMATE REGIONAL PER VEHICLE GROWTH RATE MODEL
@@ -1498,30 +1552,11 @@ GENR mvet_trend = @trend
 SMPL s2000_end
 GENR mvet_trend = mvet_trend(-4) + 0.50
 
+SMPL s1980_end
+EQUATION rev_pmvet.ls dpmvet00 c dusced00 end_mvet mvet_trend  
 
 SMPL s1980_end
-'EQUATION rev_pmvet.ls dpmvet00 c dusced00 end_mvet mvet_trend 
-'EQUATION rev_kmvet.ls dkmvet00 c dusced00 end_mvet mvet_trend 'Not used in 2014
-'EQUATION rev_bmvet.ls dbmvet00 c dusced00 end_mvet mvet_trend 'Not used in 2014 
-'EQUATION rev_tmvet.ls dtmvet00 c dusced00 end_mvet mvet_trend 'Not used in 2014
-'EQUATION rev_smvet.ls dsmvet00 c dusced00 end_mvet mvet_trend 'Not used in 2014
-
-SMPL s1980_end
-'rev_pmvet.FORECAST dpmvet00_0
-'rev_kmvet.FORECAST dkmvet00_0 'Not used in 2014
-'rev_bmvet.FORECAST dbmvet00_0 'Not used in 2014
-'rev_tmvet.FORECAST dtmvet00_0 'Not used in 2014
-'rev_smvet.FORECAST dsmvet00_0 'Not used in 2014
-
-
-'***********************************
-'*** CREATE RETAIL SALES VARIABLES
-'***********************************
-SMPL s1970_start
-GENR wfuel_0 = wfuel
-'SMPL s4cast
-SMPL 2017Q1 2050Q4
-GENR wfuel_0 = wfuel_0(-4) * exp(dwfuel_0)
+rev_pmvet.FORECAST dpmvet00_0
 
 
 '***********************************
@@ -1534,8 +1569,7 @@ GENR bretail_0 = bretail
 GENR tretail_0 = tretail
 GENR sretail_0 = sretail
 
-'SMPL s4cast
-smpl 2016Q1 2050Q4
+smpl 2009Q1 2050Q4
 GENR pretail_0 = pretail_0(-4) * exp(dpretail_0)
 GENR kretail_0 = kretail_0(-4) * exp(dkretail_0)
 GENR bretail_0 = bretail_0(-4) * exp(dbretail_0)
@@ -1544,10 +1578,10 @@ GENR sretail_0 = sretail_0(-4) * exp(dsretail_0)
 
 '***CONTROL COUNTY RETAIL SALES TO REGIONAL LEVEL
 GENR retail_adj = pretail_0 / (kretail_0 + bretail_0 + tretail_0 + sretail_0)
-GENR kretial_0 = kretail_0 * retail_adj
-GENR bretial_0 = bretail_0 * retail_adj
-GENR tretial_0 = tretail_0 * retail_adj
-GENR sretial_0 = sretail_0 * retail_adj
+GENR kretail_0 = kretail_0 * retail_adj
+GENR bretail_0 = bretail_0 * retail_adj
+GENR tretail_0 = tretail_0 * retail_adj
+GENR sretail_0 = sretail_0 * retail_adj
 
 
 '***********************************
@@ -1558,71 +1592,48 @@ GENR pcar_0 = pcar
 GENR ptrkgas_0 = ptrkgas
 GENR ptrkdies_0 = ptrkdies
 GENR pothveh_0 = pothveh
-'GENR kvehic_0 = kvehic
-'GENR bvehic_0 = bvehic
-'GENR tvehic_0 = tvehic
-'GENR svehic_0 = svehic
 
-'SMPL s4cast
-smpl 2017Q1 2050Q4
-GENR pcar_0 = pcar_0(-4) * exp(dpcar_0)
+smpl 2014Q1 2050Q4
 GENR ptrkgas_0 = ptrkgas_0(-4) * exp(dptrkgas_0)
 GENR ptrkdies_0 = ptrkdies_0(-4) * exp(dptrkdies_0)
 GENR pothveh_0 = pothveh_0(-4) * exp(dpothveh_0)
-'GENR kvehic_0 = kvehic_0(-4) * exp(dkvehic_0)
-'GENR bvehic_0 = bvehic_0(-4) * exp(dbvehic_0)
-'GENR tvehic_0 = tvehic_0(-4) * exp(dtvehic_0)
-'GENR svehic_0 = svehic_0(-4) * exp(dsvehic_0)
 
 '***CONTROL REGIONAL & COUNTY VEHICLE TYPES TO TOTAL
-GENR pveh_adj = pvehic / (pcar_0 + ptrkgas_0 + ptrkdies_0 + pothveh_0)
-GENR pcar_0 = pcar_0 * pveh_adj
+GENR pveh_adj = (pvehic_0-pcar_00) / (ptrkgas_0 + ptrkdies_0 + pothveh_0)
+pcar_0=pcar_00
 GENR ptrkgas_0 = ptrkgas_0 * pveh_adj
 GENR ptrkdies_0 = ptrkdies_0 * pveh_adj
 GENR pothveh_0 = pothveh_0 * pveh_adj
 
 SMPL s1970_end
-GENR ctyveh_adj = pvehic / (kvehic + bvehic + tvehic + svehic)
-GENR kvehic_0 = kvehic * ctyveh_adj
-GENR bvehic_0 = bvehic * ctyveh_adj
-GENR tvehic_0 = tvehic * ctyveh_adj
-GENR svehic_0 = svehic * ctyveh_adj
+GENR ctyveh_adj = pvehic_0 / (kvehic_0 + bvehic_0 + tvehic_0 + svehic_0)
 
-SMPL 1980q1 1999q4
+SMPL 1980q1 2013q4
 GENR pmvet_0 = pmvet
 GENR kmvet_0 = kmvet
 GENR bmvet_0 = bmvet
 GENR tmvet_0 = tmvet
 GENR smvet_0 = smvet
 
-SMPL 2000Q1 2004Q4
-GENR kmvet_0 = kmvet_0(-4) * exp(.01)
-GENR bmvet_0 = bmvet_0(-4) * exp(.02)
-GENR tmvet_0 = tmvet_0(-4) * exp(.02)
-GENR smvet_0 = smvet_0(-4) * exp(.02)
-GENR pmvet_0 = kmvet_0 + bmvet_0 + tmvet_0 + smvet_0
-
 SMPL s2005_end
-GENR dkvehic = log(kvehic / kvehic(-4))
-GENR dbvehic = log(bvehic / bvehic(-4))
-GENR dtvehic = log(tvehic / tvehic(-4))
-GENR dsvehic = log(svehic / svehic(-4))
+for %var p k b t s
+	genr d{%var}vehic=log({%var}vehic_0/{%var}vehic_0(-4))
+next %var
 
-SMPL s2005_end
-'GENR pmvet_0 = pmvet_0(-4) * exp(dpmvet00_0 + dpvehic + dusced00)
-'GENR kmvet_0 = kmvet_0(-4) * exp(dpmvet00_0 + dkvehic + dusced00)
-'GENR bmvet_0 = bmvet_0(-4) * exp(dpmvet00_0 + dbvehic + dusced00)
-'GENR tmvet_0 = tmvet_0(-4) * exp(dpmvet00_0 + dtvehic + dusced00)
-'GENR smvet_0 = smvet_0(-4) * exp(dpmvet00_0 + dsvehic + dusced00)
-
+SMPL 2014q1 2050q4
+GENR pmvet_0 = pmvet_0(-4) * exp(dpmvet00_0 + dpvehic + dusced00)
+GENR kmvet_0 = kmvet_0(-4) * exp(dpmvet00_0 + dkvehic + dusced00)
+GENR bmvet_0 = bmvet_0(-4) * exp(dpmvet00_0 + dbvehic + dusced00)
+GENR tmvet_0 = tmvet_0(-4) * exp(dpmvet00_0 + dtvehic + dusced00)
+GENR smvet_0 = smvet_0(-4) * exp(dpmvet00_0 + dsvehic + dusced00)
 
 SMPL s1980_end
 '***CONTROL COUNTY PER-VEHICLE MVET GROWTH TO REGIONAL TOTAL
-'GENR pmvet_adj = (pmvet_0) / (kmvet_0 + bmvet_0 + tmvet_0 + smvet_0)
-'GENR kmvet_0 = kmvet_0 * pmvet_adj
-'GENR bmvet_0 = bmvet_0 * pmvet_adj
-'GENR tmvet_0 = tmvet_0 * pmvet_adj
-'GENR smvet_0 = smvet_0 * pmvet_adj
+GENR pmvet_adj = (pmvet_0) / (kmvet_0 + bmvet_0 + tmvet_0 + smvet_0)
+GENR kmvet_0 = kmvet_0 * pmvet_adj
+GENR bmvet_0 = bmvet_0 * pmvet_adj
+GENR tmvet_0 = tmvet_0 * pmvet_adj
+GENR smvet_0 = smvet_0 * pmvet_adj
 
 
 '*** WRITE OUT REVENUE FORECAST TO EXCEL WORKBOOK
@@ -1632,5 +1643,3 @@ SMPL s1970_end
 WRITE %name pretail_0 kretail_0 bretail_0 tretail_0 sretail_0   pvehic pcar_0 ptrkgas_0 ptrkdies_0 pothveh_0    kvehic_0 bvehic_0 tvehic_0 svehic_0   pmvet_0 kmvet_0 bmvet_0 tmvet_0 smvet_0   wfuel_0
 
 wfsave psrc2017_out_FINAL
-
-
