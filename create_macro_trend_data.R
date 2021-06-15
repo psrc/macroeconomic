@@ -62,16 +62,14 @@ fetch_bea <- function(tblname,linecode, fipsgeo){
 
 fetch_dol <- function(dyear){
   require(data.table)
-  opyear <- dyear
-  counter <- 1
+  opyears <- c(2017:dyear)
   psrc_counties <- c("17","18","27","31","40")                                                     # 40 is the statewide line
   dol_chunks <- list()
-  while(opyear > 2016){
-    dol_chunks[[counter]] <- fread(paste0("https://fortress.wa.gov/dol/vsd/vsdFeeDistribution/cache/", opyear,"C00-63.csv")) %>%
-                             .[get("Fuel Type") !="None" & str_sub(County,1,2) %in% psrc_counties] %>% .[,data_year:=opyear]
-    opyear  <- opyear  - 1
-    counter <- counter + 1
-    }
+  read_dol <- function(opyear){
+    fread(paste0("https://fortress.wa.gov/dol/vsd/vsdFeeDistribution/cache/", opyear,"C00-63.csv")) %>%
+    .[get("Fuel Type") !="None" & str_sub(County,1,2) %in% psrc_counties] %>% .[,data_year:=..opyear]
+  }
+  dol_chunks <- lapply(opyears, read_dol)
   veh <- rbindlist(dol_chunks, use.names=TRUE) %>% setDT() %>% setnames(c("Fuel Type","County"),c("fuel_type","county")) %>% 
          .[,county:=str_sub(county,1,2)]
   return(veh)
@@ -79,22 +77,21 @@ fetch_dol <- function(dyear){
 
 fetch_dor <- function(dyear){
   require(data.table, httr, readxl)
-  opyear <- dyear
-  counter <- 1
+  opyears <- c(2007:dyear)
   psrc_counties <- c("17","18","27","31")
   dor_chunks <- list()
-  while(opyear > 2007){
+  read_dor <- function(opyear){
     ref_set <- case_when(opyear==2019 ~c("R", "19", "vs","CAL"), TRUE ~c("r", toString(opyear), "VS", "Cal"))
     xl_type <- case_when(opyear %in% c(2008,2011,2012) ~".xls",TRUE ~".xlsx")
     url <- paste0("https://dor.wa.gov/sites/default/files/legacy/Docs/", ref_set[1],"eports/", opyear, "/lrtcal", ref_set[2], 
            "/TRS_RTL_", ref_set[3], "_TOT_COUNTY_",ref_set[4], opyear, xl_type)
     GET(url, write_disk(tf <- tempfile(fileext = xl_type)))
-    dor_chunks[[counter]] <- read_excel(tf, range="A7:D45", col_names=FALSE, skip=6) %>% setDT() %>% .[...1 %in% psrc_counties,.(...1,...4)] %>%  
-                             setnames(c("series_id","d_value")) %>% .[, data_year:=opyear]
+    ret <- read_excel(tf, range="A7:D45", col_names=FALSE, skip=6) %>% setDT() %>% .[...1 %in% psrc_counties,.(...1,...4)] %>%  
+           setnames(c("series_id","d_value")) %>% .[, data_year:=opyear]
     unlink(tf)
-    opyear  <- opyear  - 1
-    counter <- counter + 1
+    return(ret)
   }
+  dor_chunks <- lapply(opyears, read_dor)
   sales <- rbindlist(dor_chunks, use.names=TRUE) %>% setDT()
   return(sales)
 }
@@ -198,7 +195,7 @@ all_chunks[[6]] <- getCensus(name = "popproj/pop", vintage = 2017,              
 
 # Export updated values and merge w/ Sockeye db ---------------------------
 mapply(addQM, all_chunks[3:6], simplify=FALSE)                                                     # Add empty quarter or month columns to make each dataset consistent
-mapply(addM,  all_chunks[1],   simplify=FALSE)
+mapply(addM,  all_chunks[1:2], simplify=FALSE)
 input_all <- rbindlist(all_chunks, use.names=TRUE)                                                 # Combine into one
 
 sockeye_connection <- dbConnect(odbc::odbc(),                                                      # Create the db connection
