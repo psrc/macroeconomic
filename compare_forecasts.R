@@ -30,7 +30,7 @@ select_sql <- paste("WITH e AS (SELECT ef.data_year, ef.jobs/1000 AS emp",
                      "SELECT e.data_year AS d_year, p.pop AS eco_totpop, e.emp AS eco_totemp",
                         "FROM e JOIN p ON e.data_year = p.data_year",
                         "ORDER BY e.data_year;")
-eco_xrpt <- dbGetQuery(elmer_connection,SQL(select_sql)) %>% setDT() %>% setkey("d_year")
+eco_xrpt <- dbGetQuery(elmer_connection,SQL(select_sql)) %>% setDT() %>% setkey("d_year")          # Pull the EcoNW/PSRC forecast (2018)
 dbDisconnect(elmer_connection)
 
 # Woods & Poole import ---------------------------------------------------
@@ -39,21 +39,20 @@ fread_wp <- function(filename){                                                 
   require(magrittr)
   wp_dir <- "J:/Projects/Forecasts/Regional/WoodsPooleProducts/2020 Forecast Product/"
   inpath <- paste0(wp_dir, filename)
-  ret <- fread(inpath, sep=",", nrows=116, header=TRUE, na.strings=c('\"n.a.\"'),  skip=2, colClasses = c("character", rep("numeric", 82)), fill=TRUE) 
-  ret[ret=="n.a."] <- NA
-  ret %<>% transpose(keep.names="d_year", make.names=1) %>% .[,d_year:=as.integer(d_year)]
+  ret <- fread(inpath, sep=",", nrows=116, header=TRUE, na.strings=c('\"n.a.\"'), skip=2, 
+               colClasses = c("character", rep("numeric", 82)), fill=TRUE) %>%
+         transpose(keep.names="d_year", make.names=1) %>% .[,d_year:=as.integer(d_year)]
   return(ret)
 }
-wp_eco[[1]] <- fread_wp("KGECO.CSV") %>% .[,county_id:=33]
+wp_eco[[1]] <- fread_wp("KGECO.CSV") %>% .[,county_id:=33]                                         # Read the Woods & Poole data by county
 wp_eco[[2]] <- fread_wp("KTECO.CSV") %>% .[,county_id:=35]
 wp_eco[[3]] <- fread_wp("PIECO.CSV") %>% .[,county_id:=53]
 wp_eco[[4]] <- fread_wp("SNECO.CSV") %>% .[,county_id:=61]
-wp_psrc <- rbindlist(wp_eco, use.names = TRUE) %>% .[,lapply(.SD, sum, na.rm=TRUE), by=d_year]     # Combine into Regional dataset
+wp_psrc <- rbindlist(wp_eco, use.names = TRUE) %>% .[,lapply(.SD, sum, na.rm=TRUE), by=d_year]     # Aggregate to regional level
 wp_xrpt <- wp_psrc[,c(1:2,18)] %>% setkey("d_year") %>% setnames(c(2:3),c("wp_totpop","wp_totemp"))
 
 # Combined dataset & statistical operations ------------------------------
-eco_wp <- wp_xrpt[eco_xrpt,on=.(d_year)] %>% .[d_year>=2015] #pivot_longer(-c("d_year"), names_to="series", values_to="d_value") 
-ts_ecwp <- ts_ts(ts_long(eco_wp))
-#ggplot(data = eco_wp, aes(x=d_year, y=d_value)) + geom_line(aes(colour=series))
-ts_ggplot(ts_ecwp) 
+eco_wp <- wp_xrpt[eco_xrpt,on=.(d_year)] %>% .[d_year>=2015]                                       # Combine two forecasts in one table
+ts_ecwp <- ts_ts(ts_long(eco_wp))                                                                  # Covert to time-series object
+ts_ggplot(ts_ecwp)                                                                                 # Plot time-series
 
