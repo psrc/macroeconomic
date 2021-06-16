@@ -21,7 +21,8 @@ prfx <- c("eco_","wp_","psef_")                                                 
 regvars <- c("pop","emp","hhs")                                                                    # Regional variables
 natvars <- c("uspop","uspop16","usemp","usgdp","ushhs")                                            # National variables
 regvar_sets <- list(paste0(prfx, "pop"),paste0(prfx[1:2],"hhs"),paste0(prfx,"emp"))                # Variable groupings to show together
-natvar_sets <- list(paste0(prfx[2:3], "uspop"),paste0(prfx, "usemp"),paste0(prfx, "usgdp"))
+natvar_sets <- list(c(paste0(prfx[2:3], "uspop"),paste0(prfx[1:2], "uspop16")), 
+                    paste0(prfx, "usemp"),paste0(prfx, "usgdp"))
 
 # Functions --------------------------------------------------------------
   logdiff <- function(xvar){
