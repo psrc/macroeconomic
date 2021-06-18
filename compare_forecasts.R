@@ -35,7 +35,9 @@ natvar_sets <- list(c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")),
   batch_plot <- function(dset, varsets){
     dsplit <- lapply(varsets, function(x){dset[,c("d_year",..x)]}) %>%                             # Split the dataset to a list of datasets
               lapply(ts_long) %>% lapply(ts_ts)                                                    # Convert to time series
-    ret <- lapply(dsplit, ts_ggplot)                                                               # Plot
+    ret <- lapply(dsplit, function(j){
+                            ts_ggplot(j) + xlab(NULL)
+                          })
     return(ret)
   }
 
@@ -83,7 +85,6 @@ natvar_sets <- list(c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")),
   wp_eco[1:4] <- lapply(wp_files,fread_wp)
   wp_psrc <- rbindlist(wp_eco, use.names = TRUE) %>% .[,lapply(.SD, sum, na.rm=TRUE), by=d_year]   # Aggregate to regional level
   wp_xrpt <- wp_psrc[,c(1:2,18,92)] %>% setkey("d_year") %>% setnames(c(2:4), paste0("wp_", regvars))
-  colnames(wp_usxrpt)
   wp_usfile <- "2020 Forecast Product/USECO.CSV"
   wp_rawus <- c("TOTAL POPULATION (in thousands)",
                 "  TOTAL POPULATION AGE 65 YEARS and OVER (in thousands)",
@@ -124,8 +125,8 @@ natvar_sets <- list(c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")),
   natnl_r8 <- copy(natnl) %>% .[,colnames(natnl[,-1]):=lapply(.SD,logdiff),.SDcols=!c("d_year")]
   regnl_plot <- batch_plot(regnl, regvar_sets)                                                     # Create plots (levels)
   natnl_plot <- batch_plot(natnl, natvar_sets)
-  regnl_r8plot <- batch_plot(regnl_rates, regvar_sets)                                             # Create plots (rates)       
-  natnl_r8plot <- batch_plot(natnl_rates, natvar_sets)
+  regnl_r8plot <- batch_plot(regnl_r8, regvar_sets)                                             # Create plots (rates)       
+  natnl_r8plot <- batch_plot(natnl_r8, natvar_sets)
 
   do.call(grid.arrange, c(regnl_plot))                                                             # Display the specific plot
   do.call(grid.arrange, c(natnl_plot))
