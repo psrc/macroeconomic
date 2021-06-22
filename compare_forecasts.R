@@ -16,8 +16,9 @@ library(gridExtra)
 #=-----------------------------------------------------------------------=
 
 # User settings
-plot_start_year <- 2015
+plot_start_year <- 2010
 pdf_file <- "MEF_comparison.pdf" # set this to NULL if no pdf is desired
+pdf_file <- NULL
 
 # settings for getting the data
 connect_to_elmer <- FALSE
@@ -31,7 +32,9 @@ psef_dir <- file.path(data_base_dir, "PSEFProducts")
 prfx <- c("eco_","wp_","psef_")                                                                    # Prefixes for individual forecasts
 regvars <- c("pop","emp","hhs")                                                                    # Regional variables
 natvars <- c("uspop","uspop16","usemp","usgdp","usdratio","ushhs")                                            # National variables
-regvar_sets <- list(Population = paste0(prfx, "pop"), Households = paste0(prfx[1:2],"hhs"), Employment = paste0(prfx,"emp"))                # Variable groupings to display together
+regvar_sets <- list(Population = paste0(prfx, "pop"), Households = paste0(prfx[1:2],"hhs"), 
+                    Employment = paste0(prfx,"emp"), 
+                    HouseholdSize = c(paste0(prfx[1:2],"hhsize"), paste0(prfx[2], "ushhsize")))   # Variable groupings to display together
 natvar_sets <- list(Population = c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")), 
                     Employment = paste0(prfx, "usemp"), 
                     GDP = paste0(prfx, "usgdp"), 
@@ -79,15 +82,15 @@ if(connect_to_elmer) {
   dbDisconnect(elmer_connection)
   rm(elmer_connection, select_sql)
 } else {
-  eco_xrpt <- fread(eco_file)
+  eco_xrpt <- fread(eco_file)  %>% setkey("d_year") 
 }
   
+  eco_xrpt[, eco_hhsize := eco_pop/eco_hhs]
 # load national series
   eco_usvars <- c("d_year", paste0("eco_", natvars[2:5]))
   eco_usxrpt <- fread(file = eco_usfile, header=TRUE) %>% 
                 setnames(c("_date_", "pop_0", "e_0","gdpr_0","pctpopworkage1664"), eco_usvars) %>%
                 .[,d_year:=year(d_year)] %>% setkey(d_year) %>% .[,..eco_usvars]
-
   
 # Woods & Poole import ---------------------------------------------------
   wp_eco <- list()
@@ -102,6 +105,7 @@ if(connect_to_elmer) {
   wp_eco[1:4] <- lapply(wp_files,fread_wp)
   wp_psrc <- rbindlist(wp_eco, use.names = TRUE) %>% .[,lapply(.SD, sum, na.rm=TRUE), by=d_year]   # Aggregate to regional level
   wp_xrpt <- wp_psrc[,c(1:2,18,92)] %>% setkey("d_year") %>% setnames(c(2:4), paste0("wp_", regvars))
+  wp_xrpt[, wp_hhsize := wp_pop/wp_hhs]
   wp_usfile <- "2020 Forecast Product/USECO.CSV"
   wp_rawus <- c("TOTAL POPULATION (in thousands)",
                 "  TOTAL POPULATION AGE 65 YEARS and OVER (in thousands)",
@@ -115,6 +119,7 @@ if(connect_to_elmer) {
                setnames(wp_rawus[1:3],c("wp_uspop","wp_uspop65","wp_uspop16")) %>%
                .[,wp_usdratio:= (wp_uspop16 - wp_uspop65)/wp_uspop] %>% .[,wp_uspop65:=NULL] %>%
                setnames(wp_rawus[4:6],c(paste0("wp_", c("usemp","usgdp","ushhs"))))
+  wp_xrpt[wp_usxrpt, wp_ushhsize := i.wp_uspop/i.wp_ushhs, on = "d_year"]
   rm(wp_files, fread_wp, wp_eco, wp_usfile)
 
 # PSEF import ------------------------------------------------------------
@@ -145,11 +150,11 @@ if(connect_to_elmer) {
   natnl_r8plot <- batch_plot(natnl_r8, natvar_sets, titles = paste("National first log diff", names(natvar_sets), sep = " - "))
 
   
-  if(!is.null(pdf_file)) pdf(pdf_file, width = 8, height = 6)
-
-  do.call(grid.arrange, c(regnl_plot))                                                            # Display the specific plot
-  do.call(grid.arrange, c(natnl_plot))
+  if(!is.null(pdf_file)) pdf(pdf_file, width = 10, height = 6)
+  # Display the specific plot
+  do.call(grid.arrange, c(regnl_plot))   
   do.call(grid.arrange, c(regnl_r8plot))
+  do.call(grid.arrange, c(natnl_plot))
   do.call(grid.arrange, c(natnl_r8plot))
   
   if(!is.null(pdf_file)) dev.off()
