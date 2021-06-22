@@ -1,8 +1,6 @@
 library(tidyverse)
 library(magrittr)
 library(data.table)
-library(odbc)
-library(DBI)
 library(tsbox)
 library(ggplot2)
 library(readxl)
@@ -17,31 +15,48 @@ library(gridExtra)
 #  Add others as they become available
 #=-----------------------------------------------------------------------=
 
+# User settings
+plot_start_year <- 2015
+pdf_file <- "MEF_comparison.pdf" # set this to NULL if no pdf is desired
+
+# settings for getting the data
+connect_to_elmer <- FALSE
+data_base_dir <- "J:/Projects/Forecasts/Regional"
+data_base_dir <- "~/J/Projects/Forecasts/Regional"
+eco_usfile <- file.path(data_base_dir, "2017/e.Final_forecast/Raw_Output/Final/Eviews\ workfiles", "fm_smoothed.csv") # National series exported from eViews workfile
+eco_file <- "eco_xrpt.csv" # not used if connect.to.elmer is TRUE
+wp_dir <- file.path(data_base_dir, "WoodsPooleProducts") # Woods & Poole directory
+psef_dir <- file.path(data_base_dir, "PSEFProducts")
+
 prfx <- c("eco_","wp_","psef_")                                                                    # Prefixes for individual forecasts
 regvars <- c("pop","emp","hhs")                                                                    # Regional variables
 natvars <- c("uspop","uspop16","usemp","usgdp","usdratio","ushhs")                                            # National variables
-regvar_sets <- list(paste0(prfx, "pop"),paste0(prfx[1:2],"hhs"),paste0(prfx,"emp"))                # Variable groupings to display together
-natvar_sets <- list(c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")), 
-                    paste0(prfx, "usemp"), 
-                    paste0(prfx, "usgdp"), 
-                    paste0(prfx[1:2],"usdratio"))
+regvar_sets <- list(Population = paste0(prfx, "pop"), Households = paste0(prfx[1:2],"hhs"), Employment = paste0(prfx,"emp"))                # Variable groupings to display together
+natvar_sets <- list(Population = c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")), 
+                    Employment = paste0(prfx, "usemp"), 
+                    GDP = paste0(prfx, "usgdp"), 
+                    DepRatio = paste0(prfx[1:2],"usdratio"))
 
+  
 # Functions --------------------------------------------------------------
   logdiff <- function(xvar){
     ret <- c(diff(log(xvar),lag=1),NA)                                                             # Log first difference
     return(ret)
   }
   
-  batch_plot <- function(dset, varsets){
+  batch_plot <- function(dset, varsets, titles = NULL){
     dsplit <- lapply(varsets, function(x){dset[,c("d_year",..x)]}) %>%                             # Split the dataset to a list of datasets
               lapply(ts_long) %>% lapply(ts_ts)                                                    # Convert to time series
-    ret <- lapply(dsplit, function(j){
-                            ts_ggplot(j) + xlab(NULL)
-                          })
+    ret <- mapply(function(j, m){
+                            ts_ggplot(j, title = m) + xlab(NULL) + theme(legend.title = element_blank())
+                          }, dsplit, titles, SIMPLIFY = FALSE)
     return(ret)
   }
 
 # PSRC/EcoNW import ------------------------------------------------------
+if(connect_to_elmer) {
+  library(odbc)
+  library(DBI)
   elmer_connection <- dbConnect(odbc::odbc(),                                                      # Create the db connection
                                 driver = 'SQL Server',
                                 server = 'AWS-PROD-SQL\\Sockeye',
@@ -62,21 +77,23 @@ natvar_sets <- list(c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")),
                           "ORDER BY e.data_year;")
   eco_xrpt <- dbGetQuery(elmer_connection,SQL(select_sql)) %>% setDT() %>% setkey("d_year")          # Pull the EcoNW/PSRC forecast (2018)
   dbDisconnect(elmer_connection)
+  rm(elmer_connection, select_sql)
+} else {
+  eco_xrpt <- fread(eco_file)
+}
   
-  eco_usfile <- paste0("J:/Projects/Forecasts/Regional/2017/e.Final_forecast/",
-                       "Raw_Output/Final/Eviews workfiles/fm_smoothed.csv")                          # National series exported from eViews workfile
+# load national series
   eco_usvars <- c("d_year", paste0("eco_", natvars[2:5]))
-  eco_usxrpt <- fread(eco_usfile, header=TRUE) %>% 
+  eco_usxrpt <- fread(file = eco_usfile, header=TRUE) %>% 
                 setnames(c("_date_", "pop_0", "e_0","gdpr_0","pctpopworkage1664"), eco_usvars) %>%
                 .[,d_year:=year(d_year)] %>% setkey(d_year) %>% .[,..eco_usvars]
-  rm(elmer_connection, select_sql, eco_usfile, eco_usvars)
 
+  
 # Woods & Poole import ---------------------------------------------------
   wp_eco <- list()
-  wp_files <- c("KG","KT","PI","SN") %>% paste0("2020 Forecast Product/",.,"ECO.CSV")
+  wp_files <- c("KG","KT","PI","SN") %>% paste0("2020\ Forecast\ Product/",.,"ECO.CSV")
   fread_wp <- function(filename){                                                                  # Function to read W&P -'ECO.CSV' files only
-    wp_dir <- "J:/Projects/Forecasts/Regional/WoodsPooleProducts/"
-    inpath <- paste0(wp_dir, filename)
+    inpath <- file.path(wp_dir, filename)
     ret <- fread(inpath, sep=",", nrows=116, header=TRUE, na.strings=c('\"n.a.\"'), skip=2, 
                  colClasses = c("character", rep("numeric", 82)), fill=TRUE) %>%
            transpose(keep.names="d_year", make.names=1) %>% .[,d_year:=as.integer(d_year)]
@@ -103,8 +120,7 @@ natvar_sets <- list(c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")),
 # PSEF import ------------------------------------------------------------
   psef_file <- "Annual_Forecast_0918.xls"
   psef_read <- function(file, psefrange, series_select){                                           # Function to read PSEF from network file
-      psef_dir <- "J:/Projects/Forecasts/Regional/PSEFProducts/"
-      ret <- read_excel(paste0(psef_dir, file), range=psefrange, col_names=TRUE) %>% setDT() %>% 
+      ret <- read_excel(path.expand(file.path(psef_dir, file)), range=psefrange, col_names=TRUE) %>% setDT() %>% # using path.expand fixes a weird error on Mac
              transpose(keep.names="d_year", make.names=1) %>% setnames(series_select, names(series_select)) %>% 
              .[,d_year:=as.integer(d_year)] %>% .[,c("d_year", names(..series_select))] %>% setkey("d_year")
   }
@@ -118,17 +134,22 @@ natvar_sets <- list(c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")),
   #rm(psef_file, psef_read, psef_series, psef_usseries)
 
 # Combined dataset & statistical operations ------------------------------
-  regnl <- psef_xrpt[wp_xrpt,on=.(d_year)] %>% .[eco_xrpt,on=.(d_year)] %>% .[d_year>=2015]        # Combine regional forecasts in one table
+  regnl <- psef_xrpt[wp_xrpt,on=.(d_year)] %>% .[eco_xrpt,on=.(d_year)] %>% .[d_year>=plot_start_year]        # Combine regional forecasts in one table
   natnl <- psef_usxrpt[wp_usxrpt,on=.(d_year)] %>% .[eco_usxrpt,on=.(d_year)] %>% 
-    .[d_year>=2015]
+    .[d_year>=plot_start_year]
   regnl_r8 <- copy(regnl) %>% .[,colnames(regnl[,-1]):=lapply(.SD,logdiff),.SDcols=!c("d_year")]   # Create rates (log first differences) dataset
   natnl_r8 <- copy(natnl) %>% .[,colnames(natnl[,-1]):=lapply(.SD,logdiff),.SDcols=!c("d_year")]
-  regnl_plot <- batch_plot(regnl, regvar_sets)                                                     # Create plots (levels)
-  natnl_plot <- batch_plot(natnl, natvar_sets)
-  regnl_r8plot <- batch_plot(regnl_r8, regvar_sets)                                             # Create plots (rates)       
-  natnl_r8plot <- batch_plot(natnl_r8, natvar_sets)
+  regnl_plot <- batch_plot(regnl, regvar_sets, titles = paste("Regional totals", names(regvar_sets), sep = " - "))                                                   # Create plots (levels)
+  natnl_plot <- batch_plot(natnl, natvar_sets, titles = paste("National totals", names(natvar_sets), sep = " - "))
+  regnl_r8plot <- batch_plot(regnl_r8, regvar_sets, titles = paste("Regional first log diff", names(regvar_sets), sep = " - "))                                             # Create plots (rates)       
+  natnl_r8plot <- batch_plot(natnl_r8, natvar_sets, titles = paste("National first log diff", names(natvar_sets), sep = " - "))
 
-  do.call(grid.arrange, c(regnl_plot))                                                             # Display the specific plot
+  
+  if(!is.null(pdf_file)) pdf(pdf_file, width = 8, height = 6)
+
+  do.call(grid.arrange, c(regnl_plot))                                                            # Display the specific plot
   do.call(grid.arrange, c(natnl_plot))
   do.call(grid.arrange, c(regnl_r8plot))
   do.call(grid.arrange, c(natnl_r8plot))
+  
+  if(!is.null(pdf_file)) dev.off()
