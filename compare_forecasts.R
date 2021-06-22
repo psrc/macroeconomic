@@ -21,11 +21,11 @@ pdf_file <- "MEF_comparison.pdf" # set this to NULL if no pdf is desired
 pdf_file <- NULL
 
 # settings for getting the data
-connect_to_elmer <- FALSE
+connect_to_elmer <- TRUE # If FALSE, the data file eco_xrpt.csv will be used
 data_base_dir <- "J:/Projects/Forecasts/Regional"
-data_base_dir <- "~/J/Projects/Forecasts/Regional"
+#data_base_dir <- "~/J/Projects/Forecasts/Regional" 
 eco_usfile <- file.path(data_base_dir, "2017/e.Final_forecast/Raw_Output/Final/Eviews\ workfiles", "fm_smoothed.csv") # National series exported from eViews workfile
-eco_file <- "eco_xrpt.csv" # not used if connect.to.elmer is TRUE
+eco_file <- "eco_xrpt.csv" # not used if connect_to_elmer is TRUE
 wp_dir <- file.path(data_base_dir, "WoodsPooleProducts") # Woods & Poole directory
 psef_dir <- file.path(data_base_dir, "PSEFProducts")
 
@@ -78,14 +78,13 @@ if(connect_to_elmer) {
                           "FROM e JOIN p ON e.data_year = p.data_year",
                                  "JOIN h ON e.data_year = h.data_year",
                           "ORDER BY e.data_year;")
-  eco_xrpt <- dbGetQuery(elmer_connection,SQL(select_sql)) %>% setDT() %>% setkey("d_year")          # Pull the EcoNW/PSRC forecast (2018)
+  eco_xrpt <- dbGetQuery(elmer_connection,SQL(select_sql)) %>% setDT()  # Pull the EcoNW/PSRC forecast (2018)
   dbDisconnect(elmer_connection)
   rm(elmer_connection, select_sql)
-} else {
-  eco_xrpt <- fread(eco_file)  %>% setkey("d_year") 
-}
+} else eco_xrpt <- fread(eco_file)
   
-  eco_xrpt[, eco_hhsize := eco_pop/eco_hhs]
+  setkey(eco_xrpt, "d_year") 
+  eco_xrpt[, eco_hhsize := eco_pop/eco_hhs] # add HH size column
 # load national series
   eco_usvars <- c("d_year", paste0("eco_", natvars[2:5]))
   eco_usxrpt <- fread(file = eco_usfile, header=TRUE) %>% 
@@ -105,7 +104,7 @@ if(connect_to_elmer) {
   wp_eco[1:4] <- lapply(wp_files,fread_wp)
   wp_psrc <- rbindlist(wp_eco, use.names = TRUE) %>% .[,lapply(.SD, sum, na.rm=TRUE), by=d_year]   # Aggregate to regional level
   wp_xrpt <- wp_psrc[,c(1:2,18,92)] %>% setkey("d_year") %>% setnames(c(2:4), paste0("wp_", regvars))
-  wp_xrpt[, wp_hhsize := wp_pop/wp_hhs]
+  wp_xrpt[, wp_hhsize := wp_pop/wp_hhs] # add HH size column
   wp_usfile <- "2020 Forecast Product/USECO.CSV"
   wp_rawus <- c("TOTAL POPULATION (in thousands)",
                 "  TOTAL POPULATION AGE 65 YEARS and OVER (in thousands)",
@@ -119,7 +118,7 @@ if(connect_to_elmer) {
                setnames(wp_rawus[1:3],c("wp_uspop","wp_uspop65","wp_uspop16")) %>%
                .[,wp_usdratio:= (wp_uspop16 - wp_uspop65)/wp_uspop] %>% .[,wp_uspop65:=NULL] %>%
                setnames(wp_rawus[4:6],c(paste0("wp_", c("usemp","usgdp","ushhs"))))
-  wp_xrpt[wp_usxrpt, wp_ushhsize := i.wp_uspop/i.wp_ushhs, on = "d_year"]
+  wp_xrpt[wp_usxrpt, wp_ushhsize := i.wp_uspop/i.wp_ushhs, on = "d_year"] # add US HH size column to the regional dataset
   rm(wp_files, fread_wp, wp_eco, wp_usfile)
 
 # PSEF import ------------------------------------------------------------
