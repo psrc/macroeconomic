@@ -19,7 +19,7 @@ library(gridExtra)
 
 prfx <- c("eco_","wp_","psef_")                                                                    # Prefixes for individual forecasts
 regvars <- c("pop","emp","hhs")                                                                    # Regional variables
-natvars <- c("uspop","uspop16","usemp","usgdp","usdratio","ushhs")                                            # National variables
+natvars <- c("uspop","uspop16","usemp","usgdp","usdratio","ushhs")                                 # National variables
 regvar_sets <- list(paste0(prfx, "pop"),paste0(prfx[1:2],"hhs"),paste0(prfx,"emp"))                # Variable groupings to display together
 natvar_sets <- list(c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")), 
                     paste0(prfx, "usemp"), 
@@ -35,9 +35,7 @@ natvar_sets <- list(c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")),
   batch_plot <- function(dset, varsets){
     dsplit <- lapply(varsets, function(x){dset[,c("d_year",..x)]}) %>%                             # Split the dataset to a list of datasets
               lapply(ts_long) %>% lapply(ts_ts)                                                    # Convert to time series
-    ret <- lapply(dsplit, function(j){
-                            ts_ggplot(j) + xlab(NULL)
-                          })
+    ret <- lapply(dsplit, function(j){ts_ggplot(j) + xlab(NULL)})
     return(ret)
   }
 
@@ -60,11 +58,11 @@ natvar_sets <- list(c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")),
                           "FROM e JOIN p ON e.data_year = p.data_year",
                                  "JOIN h ON e.data_year = h.data_year",
                           "ORDER BY e.data_year;")
-  eco_xrpt <- dbGetQuery(elmer_connection,SQL(select_sql)) %>% setDT() %>% setkey("d_year")          # Pull the EcoNW/PSRC forecast (2018)
+  eco_xrpt <- dbGetQuery(elmer_connection,SQL(select_sql)) %>% setDT() %>% setkey("d_year")        # Pull the EcoNW/PSRC forecast (2018)
   dbDisconnect(elmer_connection)
   
   eco_usfile <- paste0("J:/Projects/Forecasts/Regional/2017/e.Final_forecast/",
-                       "Raw_Output/Final/Eviews workfiles/fm_smoothed.csv")                          # National series exported from eViews workfile
+                       "Raw_Output/Final/Eviews workfiles/fm_smoothed.csv")                        # National series exported from eViews workfile
   eco_usvars <- c("d_year", paste0("eco_", natvars[2:5]))
   eco_usxrpt <- fread(eco_usfile, header=TRUE) %>% 
                 setnames(c("_date_", "pop_0", "e_0","gdpr_0","pctpopworkage1664"), eco_usvars) %>%
@@ -118,14 +116,13 @@ natvar_sets <- list(c(paste0(prfx[2:3], "uspop"), paste0(prfx[1:2], "uspop16")),
   #rm(psef_file, psef_read, psef_series, psef_usseries)
 
 # Combined dataset & statistical operations ------------------------------
-  regnl <- psef_xrpt[wp_xrpt,on=.(d_year)] %>% .[eco_xrpt,on=.(d_year)] %>% .[d_year>=2015]        # Combine regional forecasts in one table
-  natnl <- psef_usxrpt[wp_usxrpt,on=.(d_year)] %>% .[eco_usxrpt,on=.(d_year)] %>% 
-    .[d_year>=2015]
+  regnl <- psef_xrpt[wp_xrpt,on=.(d_year)] %>% .[eco_xrpt,on=.(d_year)]                            # Combine regional forecasts in one table
+  natnl <- psef_usxrpt[wp_usxrpt,on=.(d_year)] %>% .[eco_usxrpt,on=.(d_year)]
   regnl_r8 <- copy(regnl) %>% .[,colnames(regnl[,-1]):=lapply(.SD,logdiff),.SDcols=!c("d_year")]   # Create rates (log first differences) dataset
   natnl_r8 <- copy(natnl) %>% .[,colnames(natnl[,-1]):=lapply(.SD,logdiff),.SDcols=!c("d_year")]
   regnl_plot <- batch_plot(regnl, regvar_sets)                                                     # Create plots (levels)
   natnl_plot <- batch_plot(natnl, natvar_sets)
-  regnl_r8plot <- batch_plot(regnl_r8, regvar_sets)                                             # Create plots (rates)       
+  regnl_r8plot <- batch_plot(regnl_r8, regvar_sets)                                                # Create plots (rates)       
   natnl_r8plot <- batch_plot(natnl_r8, natvar_sets)
 
   do.call(grid.arrange, c(regnl_plot))                                                             # Display the specific plot
