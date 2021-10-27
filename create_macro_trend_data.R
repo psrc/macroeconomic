@@ -1,13 +1,3 @@
-library(tidyverse)
-library(magrittr)
-library(data.table)
-library(bea.R)
-library(blsAPI)
-library(odbc)
-library(DBI)
-library(readxl)
-library(httr)
-library(censusapi)
 
 #-=======================================================================-
 #   Data development procedure for Macroeconomic Forecast Model inputs
@@ -25,11 +15,22 @@ library(censusapi)
 #  Must set environment variables BLS_KEY, BEA_KEY, CENSUS_API_KEY prior to execution 
 #=-----------------------------------------------------------------------=
 
+using<-function(...) {
+  libs<-unlist(list(...))
+  req<-unlist(lapply(libs,require,character.only=TRUE))
+  need<-libs[req==FALSE]
+  if(length(need)>0){ 
+    install.packages(need)
+    lapply(need,require,character.only=TRUE)
+  }
+}
+using("data.table","magrittr","tidyverse","bea.R","blsAPI","readxl","httr","censusapi","DBI","odbc")
+
 data_year <- 2019
 countycode <- c("17","18","27","31")
 psrc_fips <- c("033","035","053","061")
 psrc_counties <- c("King","Kitsap","Pierce","Snohomish")
-all_chunks <- list()
+input_all <- list()
 
 # Functions --------------------------------------------------------------
 
@@ -64,13 +65,13 @@ fetch_dol <- function(dyear){
   require(data.table)
   opyears <- c(2017:dyear)
   psrc_counties <- c("17","18","27","31","40")                                                     # 40 is the statewide line
-  dol_chunks <- list()
+  veh <- list()
   read_dol <- function(opyear){
     fread(paste0("https://fortress.wa.gov/dol/vsd/vsdFeeDistribution/cache/", opyear,"C00-63.csv")) %>%
     .[get("Fuel Type") !="None" & str_sub(County,1,2) %in% psrc_counties] %>% .[,data_year:=..opyear]
   }
-  dol_chunks <- lapply(opyears, read_dol)
-  veh <- rbindlist(dol_chunks, use.names=TRUE) %>% setDT() %>% setnames(c("Fuel Type","County"),c("fuel_type","county")) %>% 
+  veh <- lapply(opyears, read_dol)
+  veh %<>% rbindlist(use.names=TRUE) %>% setDT() %>% setnames(c("Fuel Type","County"),c("fuel_type","county")) %>% 
          .[,county:=str_sub(county,1,2)]
   return(veh)
 }
@@ -79,20 +80,20 @@ fetch_dor <- function(dyear){
   require(data.table, httr, readxl)
   opyears <- c(2007:dyear)
   psrc_counties <- c("17","18","27","31")
-  dor_chunks <- list()
-  read_dor <- function(opyear){
+  sales <- list()
+  read_dor <- function(opyear){                                                                    # options below handle inconsistent filenames                  
     ref_set <- case_when(opyear==2019 ~c("R", "19", "vs","CAL"), TRUE ~c("r", toString(opyear), "VS", "Cal"))
     xl_type <- case_when(opyear %in% c(2008,2011,2012) ~".xls",TRUE ~".xlsx")
     url <- paste0("https://dor.wa.gov/sites/default/files/legacy/Docs/", ref_set[1],"eports/", opyear, "/lrtcal", ref_set[2], 
-           "/TRS_RTL_", ref_set[3], "_TOT_COUNTY_",ref_set[4], opyear, xl_type)
+           "/TRS_RTL_", ref_set[3], "_TOT_COUNTY_", ref_set[4], opyear, xl_type)
     GET(url, write_disk(tf <- tempfile(fileext = xl_type)))
     ret <- read_excel(tf, range="A7:D45", col_names=FALSE, skip=6) %>% setDT() %>% .[...1 %in% psrc_counties,.(...1,...4)] %>%  
            setnames(c("series_id","d_value")) %>% .[, data_year:=opyear]
     unlink(tf)
     return(ret)
   }
-  dor_chunks <- lapply(opyears, read_dor)
-  sales <- rbindlist(dor_chunks, use.names=TRUE) %>% setDT()
+  sales <- lapply(opyears, read_dor)
+  sales %<>% rbindlist(use.names=TRUE) %>% setDT()
   return(sales)
 }
 
@@ -114,11 +115,11 @@ query_ls <- function(conn, qlist){
 unemp_series <- c(unlist(paste0("LAUCN53", psrc_fips,"0000000004")),                               # unemployment by county
                   unlist(paste0("LAUCN53", psrc_fips,"0000000006")))                               # labor force by county 
 lookup_bls <- setDT(data.frame(fips=c("033", "035", "053", "061"), snum=c(123, 124, 125, 126), stringsAsFactors=FALSE))
-all_chunks[[1]] <- fetch_bls(unemp_series) %>%                                          
+input_all[[1]] <- fetch_bls(unemp_series) %>%                                          
                    .[,`:=`(series_id=str_sub(series_id,8,10), v=paste0("V", str_sub(series_id,-1L)))] %>%
                    pivot_wider(names_from = v, values_from=d_value, values_fill=0, values_fn=sum) %>% setDT() %>% .[,`:=`(d_value=V4/V6)] %>% 
                    .[,c("V4","V6"):=NULL] %>% .[lookup_bls, series_id:=snum, on =.(series_id=fips)]
-all_chunks[[2]] <- fetch_bls("CUURS49DSA0") %>% .[, series_id:=105]                                # consumer price index CPI-U Seattle-Bellevue-Everett MSA
+input_all[[2]] <- fetch_bls("CUURS49DSA0") %>% .[, series_id:=105]                                # consumer price index CPI-U Seattle-Bellevue-Everett MSA
 rm(unemp_series, lookup_bls)
 
 # BEA: personal income, wages & salary -----------------------------------
@@ -128,12 +129,12 @@ bea_chunks[[2]] <- fetch_bea("CAINC4", 50, psrc_fips) %>% .[,series_id:=paste0(g
 bea_chunks[[3]] <- fetch_bea("CAINC4", 10, "000")     %>% .[,series_id:=paste0("000","p")]         # personal income - statewide
 bea_chunks[[4]] <- fetch_bea("CAINC4", 50, "000")     %>% .[,series_id:=paste0("000","w")]         # wage  &  salary - statewide
 lookup_bea <- setDT(data.frame(fipser=c(paste0(c(unlist(psrc_fips),"000"),"p"), paste0(c(unlist(psrc_fips),"000"),"w")), snum=c(1:4,9,5:8,10), stringsAsFactors=FALSE))
-all_chunks[[3]] <- rbindlist(bea_chunks, use.names=TRUE) %>% .[lookup_bea, series_id:=snum, on =.(series_id=fipser)] %>% .[,geo:=NULL]
+input_all[[3]] <- rbindlist(bea_chunks, use.names=TRUE) %>% .[lookup_bea, series_id:=snum, on =.(series_id=fipser)] %>% .[,geo:=NULL]
 rm(bea_chunks, lookup_bea)
 
 # DOR: retail sales ------------------------------------------------------
 lookup_dor <- setDT(data.frame(countycode=..countycode, snum=c(16:19), stringsAsFactors=FALSE))
-all_chunks[[4]] <- fetch_dor(data_year) %>% .[lookup_dor, series_id:=snum, on=.(series_id=countycode)] # taxable retail sales by county
+input_all[[4]] <- fetch_dor(data_year) %>% .[lookup_dor, series_id:=snum, on=.(series_id=countycode)] # taxable retail sales by county
 
 # DOL: vehicle counts ----------------------------------------------------
 truck_types <- c("Combination Farm","Combination Non Farm","Commercial","Farm","Logging","Tow Truck",
@@ -158,11 +159,11 @@ non_other <- rbindlist(dol_chunks, use.names=TRUE) %>% setkeyv(key_cols[1:2]) %>
 dol_chunks[[3]] <- dol[,c(..key_cols, "Total")] %>% setkeyv(key_cols[1:2]) %>% .[,.(Total=sum(Total)), by=key(.)] %>%
                    non_other[., nomatch=0] %>% .[,`:=`(d_value=Total - all_else, fuel_type="irrelevant")] %>% .[,c("Total","all_else"):=NULL] %>%
                    .[lookup_dol, series_id:=other, on =.(county)]  
-all_chunks[[5]] <- rbindlist(dol_chunks, use.names=TRUE)
+input_all[[5]] <- rbindlist(dol_chunks, use.names=TRUE)
 rm(truck_types, auto_types, key_cols, dol_chunks, lookup_dol, dol)
 
 # Census population projections ------------------------------------------
-all_chunks[[6]] <- getCensus(name = "popproj/pop", vintage = 2017,                                 # national population projections by age (single year); irregular update
+input_all[[6]] <- getCensus(name = "popproj/pop", vintage = 2017,                                 # national population projections by age (single year); irregular update
                    vars = c("SEX","RACE","SCENARIO","AGE","HISP","DATE_CODE","POP"), region = "us:*", key=Sys.getenv("CENSUS_API_KEY")) %>% 
                    setDT() %>% .[,`:=`(d_year=as.integer(DATE_CODE)+2007, d_value=as.integer(POP), series_id=118+case_when(age<5~0,age<20~1,age<65~2,TRUE~3))] %>% 
                    .[SCENARIO=="M" & RACE==0 & HISP==0 & SEX==0 & AGE !=999,] %>% .[,c("AGE","SCENARIO","RACE","HISP","SEX","DATE_CODE","POP","us"):=NULL] %>% 
@@ -194,9 +195,9 @@ all_chunks[[6]] <- getCensus(name = "popproj/pop", vintage = 2017,              
 #    write_disk(tf <- tempfile(fileext = ".pdf")))
 
 # Export updated values and merge w/ Sockeye db ---------------------------
-mapply(addQM, all_chunks[3:6], simplify=FALSE)                                                     # Add empty quarter or month columns to make each dataset consistent
-mapply(addM,  all_chunks[1:2], simplify=FALSE)
-input_all <- rbindlist(all_chunks, use.names=TRUE)                                                 # Combine into one
+mapply(addQM, input_all[3:6], simplify=FALSE)                                                     # Add empty quarter or month columns to make each dataset consistent
+mapply(addM,  input_all[1:2], simplify=FALSE)
+input_all %<>% rbindlist(use.names=TRUE)                                                 # Combine into one
 
 sockeye_connection <- dbConnect(odbc::odbc(),                                                      # Create the db connection
                                 driver = 'SQL Server',
@@ -216,4 +217,4 @@ merge_sql <- paste("MERGE INTO dbo.macro_trend_facts WITH (HOLDLOCK) AS target",
 query_ls(sockeye_connection, merge_sql)                                                            # Execute the query
 query_ls(sockeye_connection, "DROP TABLE stg.inputs_update")                                       # Clean up
 dbDisconnect(elmer_connection)
-#rm(all_chunks, input_all, sockeye_connection, merge_sql)                                          # Clean up
+#rm(input_all, input_all, sockeye_connection, merge_sql)                                          # Clean up
